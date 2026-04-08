@@ -53,8 +53,9 @@ interface LaptopData {
 const SmartImage = ({ src, alt, className, placeholderSeed }: { src: string, alt: string, className?: string, placeholderSeed?: string }) => {
   const [currentSrc, setCurrentSrc] = useState(src);
   const [triedExtensions, setTriedExtensions] = useState<string[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   
-  const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG', '.JPEG'];
+  const extensions = ['.webp', '.jpg', '.jpeg', '.png', '.JPG', '.PNG', '.JPEG'];
 
   const handleError = () => {
     const lastDotIndex = currentSrc.lastIndexOf('.');
@@ -77,11 +78,16 @@ const SmartImage = ({ src, alt, className, placeholderSeed }: { src: string, alt
   };
 
   return (
-    <img 
+    <motion.img 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: isLoaded ? 1 : 0 }}
+      transition={{ duration: 0.5 }}
       src={currentSrc} 
       alt={alt} 
       className={className} 
+      onLoad={() => setIsLoaded(true)}
       onError={handleError}
+      loading="lazy"
       referrerPolicy="no-referrer"
     />
   );
