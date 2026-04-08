@@ -1,0 +1,1717 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Search, 
+  Heart, 
+  ShoppingCart, 
+  Phone, 
+  MessageCircle, 
+  CheckCircle2, 
+  Star, 
+  Clock, 
+  MapPin, 
+  Filter, 
+  X, 
+  ChevronRight, 
+  Eye, 
+  Trash2,
+  Plus,
+  Minus,
+  ArrowUpDown,
+  Laptop,
+  LayoutGrid,
+  Columns,
+  Mail,
+  Quote
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+
+// --- Constants ---
+const SMOOTH_TRANSITION = { type: "spring", damping: 30, stiffness: 300 };
+const SIDEBAR_TRANSITION = { type: "spring", damping: 35, stiffness: 300 };
+const EASE_OUT_QUINT = [0.23, 1, 0.32, 1];
+
+// --- Types ---
+interface LaptopData {
+  id: number;
+  name: string;
+  price: number;
+  condition: string;
+  brand: string;
+  cpu: string;
+  ram: string;
+  storage: string;
+  screen: string;
+  location: string;
+}
+
+// --- Components ---
+const SmartImage = ({ src, alt, className, placeholderSeed }: { src: string, alt: string, className?: string, placeholderSeed?: string }) => {
+  const [currentSrc, setCurrentSrc] = useState(src);
+  const [triedExtensions, setTriedExtensions] = useState<string[]>([]);
+  
+  const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.PNG', '.JPEG'];
+
+  const handleError = () => {
+    const lastDotIndex = currentSrc.lastIndexOf('.');
+    if (lastDotIndex === -1) {
+      setCurrentSrc(`https://picsum.photos/seed/${placeholderSeed || 'laptop'}/800/600`);
+      return;
+    }
+
+    const currentExt = currentSrc.substring(lastDotIndex);
+    const base = currentSrc.substring(0, lastDotIndex);
+    
+    const nextExt = extensions.find(ext => ext.toLowerCase() !== currentExt.toLowerCase() && !triedExtensions.includes(ext.toLowerCase()));
+    
+    if (nextExt) {
+      setTriedExtensions(prev => [...prev, currentExt.toLowerCase()]);
+      setCurrentSrc(`${base}${nextExt}`);
+    } else if (!currentSrc.includes('picsum.photos')) {
+      setCurrentSrc(`https://picsum.photos/seed/${placeholderSeed || 'laptop'}/800/600`);
+    }
+  };
+
+  return (
+    <img 
+      src={currentSrc} 
+      alt={alt} 
+      className={className} 
+      onError={handleError}
+      referrerPolicy="no-referrer"
+    />
+  );
+};
+
+interface CartItem extends LaptopData {
+  quantity: number;
+}
+
+interface Review {
+  id: number;
+  name: string;
+  text: string;
+  rating: number;
+  date: string;
+}
+
+// --- Data ---
+const reviews: Review[] = [
+  { id: 1, name: "Tunde", text: "He's real. Quite polite and friendly. Recommended", rating: 5, date: "19/03/26" },
+  { id: 2, name: "James Akor", text: "He's customer service is great and deal was very fair. Thank you sir", rating: 5, date: "11/03/25" },
+  { id: 3, name: "Klaysab Filmz", text: "This man he's a wonderful person just as he said was what i got. I am enjoying my laptop 💻, he's 100% sure man", rating: 5, date: "23/04/23" },
+  { id: 4, name: "Nnaemeka Ofonagoro", text: "Yaksonthreesons is a legit place to get your laptop pcs. P.s he's sales girls are nice and helpful.", rating: 5, date: "16/01/23" },
+  { id: 5, name: "Ralph Kenny", text: "The deal went well. The seller was very friendly and accomodating. I got exactly what i wanted. Great deal at the end. I am giving him 5 star.", rating: 5, date: "16/12/22" }
+];
+const laptops: LaptopData[] = [
+  { id: 1, name: "HP Pavilion 15-Cs3063cl", price: 700000, condition: "Used", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "512GB SSD", screen: "15.6\"", location: "Abuja, Wuse 2" },
+  { id: 2, name: "HP Pavilion 15t", price: 380000, condition: "Used", brand: "HP", cpu: "Intel Core i5", ram: "12GB", storage: "512GB SSD", screen: "15.6\"", location: "Abuja, Wuse" },
+  { id: 3, name: "Apple MacBook Air 2015", price: 300000, condition: "Used", brand: "Apple", cpu: "Intel Core i5", ram: "8GB", storage: "128GB SSD", screen: "13.3\"", location: "Abuja, Wuse" },
+  { id: 4, name: "HP EliteBook 840 G7", price: 500000, condition: "Used", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "256GB SSD", screen: "13.3\"", location: "Abuja, Wuse" },
+  { id: 5, name: "HP 15", price: 350000, condition: "Used", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "1TB HDD", screen: "15.6\"", location: "Abuja, Wuse" },
+  { id: 6, name: "HP EliteBook 840 G5", price: 500000, condition: "Used", brand: "HP", cpu: "Intel Core i7", ram: "16GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse" },
+  { id: 7, name: "Apple MacBook Pro 2018", price: 850000, condition: "Used", brand: "Apple", cpu: "Intel Core i7", ram: "16GB", storage: "512GB SSD", screen: "13.3\"", location: "Abuja, Wuse" },
+  { id: 8, name: "HP Envy 14", price: 1000000, condition: "Used", brand: "HP", cpu: "Intel Core i7", ram: "16GB", storage: "1TB SSD", screen: "14\"", location: "Abuja, Wuse" },
+  { id: 9, name: "HP EliteBook 840 G8", price: 600000, condition: "Used", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse" },
+  { id: 10, name: "Dell Latitude 5401", price: 380000, condition: "Used", brand: "Dell", cpu: "Intel Core i5", ram: "16GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse" },
+  { id: 11, name: "HP EliteBook 840 G5", price: 300000, condition: "Used", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "256GB SSD", screen: "14\"", location: "Abuja, Wuse" },
+  { id: 12, name: "Apple MacBook Pro 2020", price: 950000, condition: "Used", brand: "Apple", cpu: "Intel Core i5", ram: "8GB", storage: "256GB SSD", screen: "13.3\"", location: "Abuja, Wuse" },
+  { id: 13, name: "HP 14z", price: 550000, condition: "Brand New", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse" },
+  { id: 14, name: "Lenovo ThinkPad T14", price: 550000, condition: "Used", brand: "Lenovo", cpu: "Intel Core i5", ram: "16GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse" },
+  { id: 15, name: "Dell Latitude 7380", price: 750000, condition: "Used", brand: "Dell", cpu: "Intel Core i7", ram: "16GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse" }
+];
+
+// --- Hooks ---
+const useScrollProgress = () => {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const updateScroll = () => {
+      const currentScroll = window.scrollY;
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (scrollHeight) {
+        setProgress(currentScroll / scrollHeight);
+      }
+    };
+    window.addEventListener('scroll', updateScroll);
+    return () => window.removeEventListener('scroll', updateScroll);
+  }, []);
+  return progress;
+};
+
+// --- Helper Components ---
+const Logo = ({ className = "w-6 h-6" }: { className?: string }) => {
+  const [error, setError] = useState(false);
+  
+  if (error) {
+    return <Laptop className={className} />;
+  }
+
+  return (
+    <SmartImage 
+      src="/photos/logo.png" 
+      alt="Yakson Logo" 
+      className={`${className} object-contain`}
+      placeholderSeed="tech-logo"
+    />
+  );
+};
+
+const FormatCurrency = ({ amount }: { amount: number }) => {
+  return (
+    <span className="font-bold text-emerald-600">
+      ₦{amount.toLocaleString('en-NG')}
+    </span>
+  );
+};
+
+interface ProductCardProps {
+  laptop: LaptopData;
+  onAddToCart: (l: LaptopData, e: React.MouseEvent) => void;
+  onToggleWishlist: (id: number) => void;
+  isWishlisted: boolean;
+  onQuickView: () => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+}
+
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  laptop, 
+  onAddToCart, 
+  onToggleWishlist, 
+  isWishlisted, 
+  onQuickView,
+  onMouseEnter,
+  onMouseLeave
+}) => {
+  return (
+    <motion.div 
+      layout
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ 
+        layout: SMOOTH_TRANSITION,
+        opacity: { duration: 0.4, ease: EASE_OUT_QUINT },
+        scale: { duration: 0.4, ease: EASE_OUT_QUINT }
+      }}
+      whileHover={{ 
+        y: -12,
+        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 15px 20px -10px rgba(0, 0, 0, 0.08)"
+      }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className="group bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col"
+    >
+      {/* Image Area */}
+      <div className="relative h-64 overflow-hidden bg-slate-50">
+        <SmartImage 
+          src={`/photos/${laptop.id}.jpg`} 
+          alt={laptop.name} 
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
+          placeholderSeed={`laptop-${laptop.id}`}
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        
+        <div className="absolute top-5 left-5 flex flex-col gap-2">
+          <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg backdrop-blur-md ${
+            laptop.condition === 'Brand New' ? 'bg-emerald-500/90 text-white' : 'bg-orange-500/90 text-white'
+          }`}>
+            {laptop.condition}
+          </span>
+          {laptop.price > 800000 && (
+            <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-secondary/90 text-primary shadow-lg backdrop-blur-md">
+              Premium
+            </span>
+          )}
+          {laptop.id === 1 && (
+            <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary/90 text-white shadow-lg backdrop-blur-md">
+              Featured
+            </span>
+          )}
+        </div>
+        <button 
+          onClick={() => onToggleWishlist(laptop.id)}
+          className={`absolute top-5 right-5 p-2.5 rounded-full shadow-lg backdrop-blur-md transition-all active:scale-90 z-10 ${
+            isWishlisted ? 'bg-rose-500 text-white' : 'bg-white/80 text-slate-900 hover:bg-white'
+          }`}
+        >
+          <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
+        </button>
+        <div className="absolute bottom-5 left-5 right-5 translate-y-16 group-hover:translate-y-0 transition-transform duration-500 ease-out z-10">
+          <button 
+            onClick={onQuickView}
+            className="w-full bg-white text-slate-900 font-black py-3 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-xl hover:bg-emerald-600 hover:text-white transition-all"
+          >
+            <Eye className="w-4 h-4" />
+            View Details
+          </button>
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="p-7 flex-1 flex flex-col relative">
+        <div className="flex justify-between items-start mb-3">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{laptop.brand}</span>
+          <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+            <Clock className="w-3 h-3" />
+            Fast Reply
+          </div>
+        </div>
+        <h3 className="text-xl font-black text-slate-900 mb-2 line-clamp-1 group-hover:text-emerald-700 transition-colors">{laptop.name}</h3>
+        
+        {/* Seller Feedback Summary */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100">
+            <Star className="w-3 h-3 text-amber-500 fill-current" />
+            <span className="ml-1.5 text-[11px] font-black text-slate-900">4.8</span>
+          </div>
+          <span className="text-[10px] font-black text-emerald-700 bg-emerald-100/50 px-2 py-1 rounded-lg">94% Positive</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-[11px] text-slate-500 mb-6 font-bold">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+            <span>{laptop.cpu.split(' ').pop()}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+            <span>{laptop.ram}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+            <span>{laptop.storage}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+            <span>{laptop.screen}</span>
+          </div>
+        </div>
+        
+        <div className="mt-auto pt-5 border-t border-slate-100 flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Price</span>
+            <div className="text-xl font-black text-emerald-600">
+              ₦{laptop.price.toLocaleString()}
+            </div>
+          </div>
+          <button 
+            onClick={(e) => onAddToCart(laptop, e)}
+            className="group/btn relative bg-slate-900 hover:bg-emerald-600 text-white p-4 rounded-[1.25rem] transition-all active:scale-90 shadow-xl shadow-slate-200 overflow-hidden"
+          >
+            <ShoppingCart className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// --- Helper Components ---
+const FilterSection = ({ 
+  title, 
+  options, 
+  field, 
+  filters, 
+  setFilters 
+}: { 
+  title: string, 
+  options: string[], 
+  field: string, 
+  filters: any, 
+  setFilters: any 
+}) => (
+  <div className="mb-6">
+    <h4 className="text-sm font-semibold text-slate-900 mb-3 uppercase tracking-wider">{title}</h4>
+    <div className="space-y-2">
+      {options.map(opt => (
+        <label key={opt} className="flex items-center group cursor-pointer">
+          <input 
+            type="checkbox" 
+            className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+            checked={(filters[field] as string[]).includes(opt)}
+            onChange={(e) => {
+              const current = filters[field] as string[];
+              if (e.target.checked) {
+                setFilters({ ...filters, [field]: [...current, opt] });
+              } else {
+                setFilters({ ...filters, [field]: current.filter((i: string) => i !== opt) });
+              }
+            }}
+          />
+          <span className="ml-2 text-sm text-slate-600 group-hover:text-emerald-600 transition-colors">{opt}</span>
+        </label>
+      ))}
+    </div>
+  </div>
+);
+
+const ReviewSlider = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % reviews.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="relative overflow-hidden bg-white rounded-[2.5rem] border border-slate-100 p-8 md:p-12 shadow-xl shadow-slate-200/50">
+      <div className="absolute top-0 right-0 p-8 opacity-5">
+        <Quote className="w-32 h-32 text-emerald-600" />
+      </div>
+      
+      <div className="relative z-10">
+        <div className="flex items-center gap-2 mb-8">
+          <div className="flex text-amber-400">
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} className="w-4 h-4 fill-current" />
+            ))}
+          </div>
+          <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Verified Feedback</span>
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.6, ease: EASE_OUT_QUINT }}
+            className="min-h-[120px]"
+          >
+            <p className="text-xl md:text-2xl font-bold text-slate-900 leading-relaxed italic mb-8">
+              "{reviews[currentIndex].text}"
+            </p>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-black text-lg">
+                  {reviews[currentIndex].name.charAt(0)}
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900">{reviews[currentIndex].name}</h4>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Verified Buyer • {reviews[currentIndex].date}</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                {reviews.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentIndex(i)}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      i === currentIndex ? 'w-8 bg-emerald-600' : 'bg-slate-200 hover:bg-slate-300'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
+
+const PriceSectionSlider = ({ 
+  title, 
+  items, 
+  icon: Icon,
+  onAddToCart,
+  onToggleWishlist,
+  wishlist,
+  onQuickView,
+  onMouseEnter,
+  onMouseLeave
+}: { 
+  title: string, 
+  items: LaptopData[], 
+  icon: any,
+  onAddToCart: (laptop: LaptopData, e: React.MouseEvent) => void,
+  onToggleWishlist: (id: number) => void,
+  wishlist: number[],
+  onQuickView: (id: number) => void,
+  onMouseEnter: () => void,
+  onMouseLeave: () => void
+}) => {
+  if (items.length === 0) return null;
+  
+  return (
+    <div className="mb-16 last:mb-0">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-emerald-100 rounded-xl">
+          <Icon className="w-5 h-5 text-emerald-600" />
+        </div>
+        <h3 className="text-xl font-black text-slate-900 tracking-tight">
+          {title} <span className="text-slate-400 font-bold ml-2">({items.length})</span>
+        </h3>
+      </div>
+      <div className="relative group/slider">
+        <div className="flex overflow-x-auto gap-8 pb-8 snap-x snap-mandatory no-scrollbar scroll-smooth">
+          {items.map(laptop => (
+            <div key={laptop.id} className="flex-shrink-0 w-[300px] sm:w-[350px] snap-center">
+              <ProductCard 
+                laptop={laptop} 
+                onAddToCart={onAddToCart}
+                onToggleWishlist={onToggleWishlist}
+                isWishlisted={wishlist.includes(laptop.id)}
+                onQuickView={() => onQuickView(laptop.id)}
+                onMouseEnter={onMouseEnter}
+                onMouseLeave={onMouseLeave}
+              />
+            </div>
+          ))}
+        </div>
+        {/* Visual Indicator for Horizontal Scroll */}
+        <div className="absolute -bottom-2 left-0 flex items-center gap-2">
+          <div className="w-8 h-1 bg-slate-200 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-emerald-500"
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            />
+          </div>
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Swipe</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function App() {
+  // --- State ---
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const saved = localStorage.getItem('yakson_cart');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [wishlist, setWishlist] = useState<number[]>(() => {
+    const saved = localStorage.getItem('yakson_wishlist');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [quickViewId, setQuickViewId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({
+    condition: [] as string[],
+    brand: [] as string[],
+    cpu: [] as string[],
+    ram: [] as string[],
+    storage: [] as string[],
+    priceRange: [300000, 1000000] as [number, number],
+  });
+  const [sortBy, setSortBy] = useState<'low-high' | 'high-low' | 'default'>('default');
+  const [viewMode, setViewMode] = useState<'grid' | 'slider'>('grid');
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isHovering, setIsHovering] = useState(false);
+
+  const phrases = ["Trusted Laptops Nationwide", "Used & Brand New", "Honest Form & Real Guaranty"];
+
+  // --- Effects ---
+  useEffect(() => {
+    // Simulate preloading assets
+    const timeout = setTimeout(() => setIsLoading(false), 2000);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('yakson_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem('yakson_wishlist', JSON.stringify(wishlist));
+  }, [wishlist]);
+
+  // --- Logic ---
+  const filteredLaptops = useMemo(() => {
+    let result = laptops.filter(laptop => {
+      const matchesSearch = laptop.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCondition = filters.condition.length === 0 || filters.condition.includes(laptop.condition);
+      const matchesBrand = filters.brand.length === 0 || filters.brand.includes(laptop.brand);
+      const matchesCpu = filters.cpu.length === 0 || filters.cpu.some(c => laptop.cpu.includes(c));
+      const matchesRam = filters.ram.length === 0 || filters.ram.includes(laptop.ram);
+      const matchesStorage = filters.storage.length === 0 || filters.storage.includes(laptop.storage);
+      const matchesPrice = laptop.price >= filters.priceRange[0] && laptop.price <= filters.priceRange[1];
+
+      return matchesSearch && matchesCondition && matchesBrand && matchesCpu && matchesRam && matchesStorage && matchesPrice;
+    });
+
+    if (sortBy === 'low-high') {
+      result.sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'high-low') {
+      result.sort((a, b) => b.price - a.price);
+    }
+
+    return result;
+  }, [searchQuery, filters, sortBy]);
+
+  const [isCartShaking, setIsCartShaking] = useState(false);
+
+  const addToCart = (laptop: LaptopData, e: React.MouseEvent) => {
+    setIsCartShaking(true);
+    setTimeout(() => setIsCartShaking(false), 500);
+
+    // Ripple Effect
+    const button = e.currentTarget as HTMLButtonElement;
+    const ripple = document.createElement('span');
+    const rect = button.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    
+    ripple.style.width = ripple.style.height = `${size}px`;
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+    ripple.classList.add('ripple');
+    
+    button.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 600);
+
+    setCart(prev => {
+      const existing = prev.find(item => item.id === laptop.id);
+      if (existing) {
+        return prev.map(item => item.id === laptop.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { ...laptop, quantity: 1 }];
+    });
+    
+    // Visual confirmation
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><path d="M20 6 9 17l-5-5"/></svg>';
+    button.classList.add('bg-emerald-500');
+    
+    setTimeout(() => {
+      button.innerHTML = originalContent;
+      button.classList.remove('bg-emerald-500');
+    }, 1500);
+
+    setIsCartOpen(true);
+  };
+
+  const handleCheckout = () => {
+    if (cart.length === 0) return;
+
+    const orderRef = `YAK-${Math.random().toString(36).toUpperCase().substring(2, 8)}`;
+    const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    
+    let message = `*New Order from YaksonThreeSons Ltd*\n`;
+    message += `Order Ref: #${orderRef}\n`;
+    message += `--------------------------\n\n`;
+    
+    cart.forEach((item, index) => {
+      const subtotal = item.price * item.quantity;
+      message += `${index + 1}. *${item.name}*\n`;
+      message += `   Qty: ${item.quantity} x ₦${item.price.toLocaleString()}\n`;
+      message += `   Subtotal: ₦${subtotal.toLocaleString()}\n\n`;
+    });
+    
+    message += `--------------------------\n`;
+    message += `*Total Amount: ₦${total.toLocaleString()}*\n\n`;
+    message += `Please confirm this order by replying with *'CONFIRM'*.\n`;
+    message += `I'll provide payment details once confirmed. Thank you!`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/2347013306552?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const getWhatsAppProductUrl = (laptop: LaptopData) => {
+    const message = `Hi YaksonThreeSons Ltd, I'm interested in the *${laptop.name}* (₦${laptop.price.toLocaleString()}). Is it still available?`;
+    return `https://wa.me/2347013306552?text=${encodeURIComponent(message)}`;
+  };
+
+  const removeFromCart = (id: number) => {
+    setCart(prev => prev.filter(item => item.id !== id));
+  };
+
+  const updateQuantity = (id: number, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQty = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }));
+  };
+
+  const toggleWishlist = (id: number) => {
+    setWishlist(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      condition: [],
+      brand: [],
+      cpu: [],
+      ram: [],
+      storage: [],
+      priceRange: [300000, 1000000],
+    });
+    setSearchQuery('');
+    setSortBy('default');
+  };
+
+  const quickViewLaptop = laptops.find(l => l.id === quickViewId);
+
+  // --- Price Grouping for Slider ---
+  const groupedLaptops = useMemo(() => {
+    return {
+      budget: filteredLaptops.filter(l => l.price < 450000),
+      mid: filteredLaptops.filter(l => l.price >= 450000 && l.price < 700000),
+      premium: filteredLaptops.filter(l => l.price >= 700000)
+    };
+  }, [filteredLaptops]);
+
+  return (
+    <div className="min-h-screen bg-warm-bg font-sans text-slate-900 noise-bg">
+      {/* Full Page Preloader */}
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1, ease: EASE_OUT_QUINT }}
+            className="fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.8, ease: EASE_OUT_QUINT }}
+              className="flex flex-col items-center"
+            >
+              <div className="relative mb-8">
+                <Logo className="w-16 h-16 text-emerald-600 animate-pulse" />
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="absolute -inset-4 border-2 border-emerald-100 border-t-emerald-600 rounded-full"
+                />
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-2">YaksonThreeSons Ltd</h2>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Honest Deals Only</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Scroll Progress Bar */}
+      <motion.div 
+        className="fixed top-0 left-0 right-0 h-1 bg-emerald-500 z-[100] origin-left"
+        style={{ scaleX: useScrollProgress() }}
+      />
+
+      {/* --- Header --- */}
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20 gap-8">
+            {/* Logo */}
+            <a href="#" className="flex items-center gap-3 flex-shrink-0 group">
+              <div className="bg-emerald-600 p-2 rounded-xl shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform flex items-center justify-center overflow-hidden">
+                <Logo className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <h1 className="text-base sm:text-xl font-black text-slate-900 tracking-tight leading-none">YaksonThreeSons</h1>
+                <p className="text-[8px] sm:text-[10px] font-bold text-emerald-600 uppercase tracking-[0.2em] mt-1">Honest Deals Only</p>
+              </div>
+            </a>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center gap-8">
+              <a href="#" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">Home</a>
+              <a href="#shop" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">Shop</a>
+              <a href="#about" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">About</a>
+              <a href="#reviews" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">Reviews</a>
+              <a href="#footer" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">Contact</a>
+            </nav>
+
+            {/* Search Bar - Desktop Only */}
+            <div className="hidden md:block flex-1 max-w-xs relative group/search">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within/search:text-emerald-600 transition-colors" />
+              <input 
+                type="text" 
+                placeholder="Search laptops..." 
+                className="w-full bg-slate-100 border-none rounded-full py-2 px-10 text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Icons */}
+            <div className="flex items-center gap-1 sm:gap-4 flex-shrink-0">
+              <button 
+                onClick={() => setIsWishlistOpen(true)}
+                className="relative p-2 text-slate-600 hover:text-emerald-600 transition-all hover:scale-110"
+              >
+                <Heart className="w-5 h-5 sm:w-6 h-6" />
+                {wishlist.length > 0 && (
+                  <span className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
+                    {wishlist.length}
+                  </span>
+                )}
+              </button>
+
+              <button 
+                onClick={() => setIsCartOpen(true)}
+                className={`relative p-2 text-slate-600 hover:text-emerald-600 transition-all hover:scale-110 ${isCartShaking ? 'animate-shake' : ''}`}
+              >
+                <ShoppingCart className="w-5 h-5 sm:w-6 h-6" />
+                {cart.length > 0 && (
+                  <span className="absolute top-0 right-0 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
+                    {cart.reduce((acc, item) => acc + item.quantity, 0)}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        {/* --- Hero Section --- */}
+        <section className="relative h-[85vh] min-h-[600px] flex items-center justify-center overflow-hidden bg-slate-900">
+          <motion.div 
+            initial={{ scale: 1.1, opacity: 0 }}
+            animate={{ scale: 1, opacity: 0.5 }}
+            transition={{ duration: 2, ease: EASE_OUT_QUINT }}
+            className="absolute inset-0"
+          >
+            <SmartImage 
+              src="/photos/hero.jpg" 
+              alt="Hero Background" 
+              className="w-full h-full object-cover"
+              placeholderSeed="laptop-hero"
+            />
+          </motion.div>
+          
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/60 to-slate-900" />
+          
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, ease: EASE_OUT_QUINT }}
+            >
+              <span className="inline-block bg-emerald-500/20 text-emerald-400 text-xs font-black px-4 py-2 rounded-full uppercase tracking-[0.3em] mb-6 backdrop-blur-sm border border-emerald-500/30">
+                Nigeria's #1 Laptop Plug
+              </span>
+              <h1 className="text-5xl md:text-8xl font-black text-white mb-8 tracking-tight leading-[1.1]">
+                Nigeria's Most Trusted<br />
+                <span className="text-emerald-500">Laptop Plug.</span>
+              </h1>
+              <p className="text-lg md:text-xl text-slate-300 mb-12 max-w-2xl mx-auto font-medium leading-relaxed">
+                Discover our curated selection of high-performance laptops. 
+                Verified hardware, real warranties, and the best prices in Nigeria.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                <a 
+                  href="#shop"
+                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black px-10 py-5 rounded-2xl transition-all shadow-2xl shadow-emerald-500/20 active:scale-95 text-lg"
+                >
+                  Start Shopping
+                </a>
+                <div className="w-full sm:w-auto relative group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                  <input 
+                    type="text" 
+                    placeholder="Search by brand or model..." 
+                    className="w-full sm:w-80 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl py-5 pl-12 pr-6 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 focus:bg-white/20 transition-all outline-none"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Scroll Indicator */}
+          <motion.div 
+            animate={{ y: [0, 10, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/30"
+          >
+            <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center p-1">
+              <div className="w-1 h-2 bg-white/30 rounded-full" />
+            </div>
+          </motion.div>
+        </section>
+
+        {/* --- Features Section --- */}
+        <section className="py-24 bg-white border-b border-slate-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 mb-3">Verified Hardware</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Every laptop undergoes a rigorous 25-point diagnostic check before listing.
+                </p>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-6">
+                  <Clock className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 mb-3">14-Day Warranty</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Shop with confidence. We offer a real hardware warranty on all our products.
+                </p>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center mb-6">
+                  <MapPin className="w-8 h-8 text-purple-600" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 mb-3">Nationwide Delivery</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Fast and secure delivery across Nigeria, or visit our physical location in Abuja.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* --- About / Our Story Section --- */}
+        <section id="about" className="py-24 bg-slate-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+              <div className="lg:flex">
+                <div className="lg:w-1/2 p-12 md:p-20">
+                  <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest mb-8 inline-block">Our Story</span>
+                  <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-8 leading-tight">
+                    "We operate in honest form and our guaranty is real"
+                  </h2>
+                  <p className="text-lg text-slate-600 mb-10 leading-relaxed">
+                    YaksonThreeSons Ltd was founded on the principle of transparency. In a market full of uncertainty, we provide Nigeria with a reliable source for high-quality computing.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-8 mb-12">
+                    <div>
+                      <h4 className="text-3xl font-black text-emerald-600 mb-1">94%</h4>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Positive Feedback</p>
+                    </div>
+                    <div>
+                      <h4 className="text-3xl font-black text-emerald-600 mb-1">5+ Yrs</h4>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">In Business</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-4">
+                    <a 
+                      href="https://wa.me/2347013306552" 
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black px-8 py-4 rounded-2xl transition-all shadow-lg shadow-emerald-200 active:scale-95"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      Chat with Founder
+                    </a>
+                    <div className="flex flex-col gap-2">
+                      <a href="tel:07013306552" className="flex items-center gap-3 bg-slate-900 hover:bg-slate-800 text-white font-black px-8 py-4 rounded-2xl transition-all active:scale-95">
+                        <Phone className="w-5 h-5" />
+                        07013306552
+                      </a>
+                      <a href="tel:07041533750" className="flex items-center gap-3 bg-slate-900 hover:bg-slate-800 text-white font-black px-8 py-4 rounded-2xl transition-all active:scale-95">
+                        <Phone className="w-5 h-5" />
+                        07041533750
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                <div className="lg:w-1/2 bg-slate-900 relative min-h-[400px]">
+                  <SmartImage 
+                    src="/photos/about.jpg" 
+                    alt="Our Office" 
+                    className="w-full h-full object-cover opacity-60"
+                    placeholderSeed="office"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center p-12">
+                    <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-[2rem] text-white">
+                      <Quote className="w-10 h-10 text-emerald-500 mb-6" />
+                      <p className="text-xl font-bold italic leading-relaxed mb-6">
+                        "The best laptop plug in Nigeria. Honest deals always. I got exactly what I wanted and the customer service was top-notch."
+                      </p>
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-black">V</div>
+                        <div>
+                          <p className="font-black">Verified Buyer</p>
+                          <p className="text-xs text-white/60">Purchased HP EliteBook 840</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* --- Shop Section --- */}
+        <section id="shop" className="py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+              <div>
+                <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">Explore Our Collection</h2>
+                <p className="text-slate-500 font-medium">Find the perfect laptop for your needs and budget.</p>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <div className="flex bg-slate-100 p-1 rounded-xl">
+                  <button 
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    <LayoutGrid className="w-5 h-5" />
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('slider')}
+                    className={`p-2 rounded-lg transition-all ${viewMode === 'slider' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    <Columns className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <button 
+                  onClick={() => setIsMobileFilterOpen(true)}
+                  className="lg:hidden flex items-center gap-2 bg-slate-900 text-white font-bold px-6 py-3 rounded-xl hover:bg-slate-800 transition-all"
+                >
+                  <Filter className="w-4 h-4" />
+                  Filters
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-12">
+          {/* Sidebar Filters */}
+          <aside className="hidden lg:block w-72 flex-shrink-0">
+            <div className="sticky top-28 space-y-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-black text-slate-900">Filters</h3>
+                <button 
+                  onClick={clearFilters}
+                  className="text-xs font-bold text-emerald-600 hover:text-emerald-700 underline"
+                >
+                  Clear All
+                </button>
+              </div>
+
+              <FilterSection title="Condition" options={["Used", "Brand New"]} field="condition" filters={filters} setFilters={setFilters} />
+              <FilterSection title="Brand" options={["HP", "Apple", "Dell", "Lenovo"]} field="brand" filters={filters} setFilters={setFilters} />
+              <FilterSection title="CPU" options={["i3", "i5", "i7"]} field="cpu" filters={filters} setFilters={setFilters} />
+              <FilterSection title="RAM" options={["8GB", "12GB", "16GB"]} field="ram" filters={filters} setFilters={setFilters} />
+              <FilterSection title="Storage" options={["128GB SSD", "256GB SSD", "512GB SSD", "1TB SSD", "1TB HDD"]} field="storage" filters={filters} setFilters={setFilters} />
+
+              <div>
+                <h4 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wider">Price Range</h4>
+                <div className="space-y-4">
+                  <input 
+                    type="range" 
+                    min="300000" 
+                    max="1000000" 
+                    step="50000"
+                    className="w-full accent-emerald-600"
+                    value={filters.priceRange[1]}
+                    onChange={(e) => setFilters({ ...filters, priceRange: [300000, parseInt(e.target.value)] })}
+                  />
+                  <div className="flex justify-between text-xs font-bold text-slate-500">
+                    <span>₦300k</span>
+                    <span className="text-emerald-600">Up to ₦{(filters.priceRange[1]/1000).toFixed(0)}k</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <div className="flex-1">
+            {/* Top Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-8 bg-white p-4 rounded-2xl border border-slate-200">
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setIsMobileFilterOpen(true)}
+                  className="lg:hidden flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-xl text-sm font-bold text-slate-700"
+                >
+                  <Filter className="w-4 h-4" />
+                  Filters
+                </button>
+                <p className="text-sm font-bold text-slate-500">
+                  Showing <span className="text-slate-900">{filteredLaptops.length}</span> laptops
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  <button 
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                    title="Grid View"
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('slider')}
+                    className={`p-2 rounded-lg transition-all ${viewMode === 'slider' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                    title="Slider View"
+                  >
+                    <Columns className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
+                  <ArrowUpDown className="w-4 h-4 text-slate-400" />
+                  <select 
+                    className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 py-0"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                  >
+                    <option value="default">Sort by: Featured</option>
+                    <option value="low-high">Price: Low to High</option>
+                    <option value="high-low">Price: High to Low</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Product Grid / Slider */}
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-2 gap-3 sm:gap-8">
+                {isLoading ? (
+                  // Skeleton Loading
+                  [...Array(6)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-3xl border border-slate-200 overflow-hidden h-[450px] animate-shimmer">
+                      <div className="h-56 bg-slate-100" />
+                      <div className="p-6 space-y-4">
+                        <div className="h-4 bg-slate-100 rounded w-1/4" />
+                        <div className="h-6 bg-slate-100 rounded w-3/4" />
+                        <div className="h-4 bg-slate-100 rounded w-1/2" />
+                        <div className="pt-4 border-t border-slate-100 flex justify-between">
+                          <div className="h-8 bg-slate-100 rounded w-1/3" />
+                          <div className="h-10 bg-slate-100 rounded w-10" />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <AnimatePresence mode="popLayout">
+                    {filteredLaptops.map(laptop => (
+                      <ProductCard 
+                        key={laptop.id} 
+                        laptop={laptop} 
+                        onAddToCart={addToCart}
+                        onToggleWishlist={toggleWishlist}
+                        isWishlisted={wishlist.includes(laptop.id)}
+                        onQuickView={() => setQuickViewId(laptop.id)}
+                        onMouseEnter={() => setIsHovering(true)}
+                        onMouseLeave={() => setIsHovering(false)}
+                      />
+                    ))}
+                  </AnimatePresence>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-12">
+                {isLoading ? (
+                  [...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-8 bg-slate-100 rounded w-48 mb-6" />
+                      <div className="flex gap-8 overflow-hidden">
+                        {[...Array(3)].map((_, j) => (
+                          <div key={j} className="flex-shrink-0 w-[300px] h-[400px] bg-slate-50 rounded-3xl" />
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <PriceSectionSlider 
+                      title="Budget Friendly" 
+                      items={groupedLaptops.budget} 
+                      icon={Clock} 
+                      onAddToCart={addToCart}
+                      onToggleWishlist={toggleWishlist}
+                      wishlist={wishlist}
+                      onQuickView={setQuickViewId}
+                      onMouseEnter={() => setIsHovering(true)}
+                      onMouseLeave={() => setIsHovering(false)}
+                    />
+                    <PriceSectionSlider 
+                      title="Best Value" 
+                      items={groupedLaptops.mid} 
+                      icon={CheckCircle2} 
+                      onAddToCart={addToCart}
+                      onToggleWishlist={toggleWishlist}
+                      wishlist={wishlist}
+                      onQuickView={setQuickViewId}
+                      onMouseEnter={() => setIsHovering(true)}
+                      onMouseLeave={() => setIsHovering(false)}
+                    />
+                    <PriceSectionSlider 
+                      title="Premium Selection" 
+                      items={groupedLaptops.premium} 
+                      icon={Star} 
+                      onAddToCart={addToCart}
+                      onToggleWishlist={toggleWishlist}
+                      wishlist={wishlist}
+                      onQuickView={setQuickViewId}
+                      onMouseEnter={() => setIsHovering(true)}
+                      onMouseLeave={() => setIsHovering(false)}
+                    />
+                    
+                    {filteredLaptops.length === 0 && (
+                      <div className="flex flex-col items-center justify-center py-20 text-center">
+                        <div className="bg-slate-100 p-8 rounded-full mb-6">
+                          <Search className="w-12 h-12 text-slate-300" />
+                        </div>
+                        <h3 className="text-xl font-black text-slate-900 mb-2">No laptops found</h3>
+                        <p className="text-slate-500 mb-8 max-w-xs">We couldn't find any laptops matching your current filters.</p>
+                        <button 
+                          onClick={clearFilters}
+                          className="bg-emerald-600 text-white font-bold px-8 py-3 rounded-2xl hover:bg-emerald-700 transition-colors"
+                        >
+                          Clear All Filters
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* View More Products on Jiji */}
+            {!isLoading && filteredLaptops.length > 0 && (
+              <div className="mt-16 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="flex flex-col justify-center p-12 bg-emerald-50 rounded-[2.5rem] border border-emerald-100 text-center lg:text-left">
+                  <div className="bg-white w-16 h-16 flex items-center justify-center rounded-2xl shadow-sm mb-6 mx-auto lg:mx-0 overflow-hidden">
+                    <Logo className="w-8 h-8 text-emerald-600" />
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900 mb-3">Looking for more options?</h3>
+                  <p className="text-slate-600 mb-8 max-w-md mx-auto lg:mx-0">
+                    We have a wider selection of premium laptops available on our official Jiji store. Check them out now!
+                  </p>
+                  <a 
+                    href="https://jiji.ng/sellerpage-fm7yBLF4WlrLzuISjm9WZV5E" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="group inline-flex items-center justify-center lg:justify-start gap-3 bg-slate-900 hover:bg-emerald-600 text-white font-black px-10 py-5 rounded-2xl transition-all shadow-xl shadow-slate-200 active:scale-95 w-full sm:w-auto"
+                  >
+                    View More on Jiji
+                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </a>
+                </div>
+                
+                <ReviewSlider />
+              </div>
+            )}
+
+            {filteredLaptops.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="bg-slate-100 p-8 rounded-full mb-6">
+                  <Search className="w-12 h-12 text-slate-300" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 mb-2">No laptops found</h3>
+                <p className="text-slate-500 mb-8 max-w-xs">We couldn't find any laptops matching your current filters.</p>
+                <button 
+                  onClick={clearFilters}
+                  className="bg-emerald-600 text-white font-bold px-8 py-3 rounded-2xl hover:bg-emerald-700 transition-colors"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+      {/* --- Footer --- */}
+      <motion.footer 
+        id="footer" 
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        className="bg-white border-t border-slate-200 pt-20 pb-10"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <Logo className="w-8 h-8 text-emerald-600" />
+                <h1 className="text-xl font-black text-slate-900 tracking-tight">YaksonThreeSons Ltd</h1>
+              </div>
+              <p className="text-slate-500 text-sm leading-relaxed">
+                Nigeria's most trusted laptop dealer for over 5 years. We specialize in high-quality used and brand new laptops with real guarantees.
+              </p>
+              <div className="flex gap-4">
+                <a href="https://wa.me/2347013306552" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-emerald-600 hover:text-white transition-all">
+                  <MessageCircle className="w-5 h-5" />
+                </a>
+                <a href="tel:07013306552" className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-emerald-600 hover:text-white transition-all">
+                  <Phone className="w-5 h-5" />
+                </a>
+                <a href="mailto:ugwokejames84@gmail.com" className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-emerald-600 hover:text-white transition-all">
+                  <Mail className="w-5 h-5" />
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">Quick Links</h4>
+              <ul className="space-y-4 text-sm font-bold text-slate-500">
+                <li><a href="#" className="hover:text-emerald-600 transition-colors">Home</a></li>
+                <li><a href="#shop" className="hover:text-emerald-600 transition-colors">Shop Laptops</a></li>
+                <li><a 
+                  href="https://jiji.ng/sellerpage-fm7yBLF4WlrLzuISjm9WZV5E" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-600 transition-colors"
+                >
+                  View More on Jiji
+                </a></li>
+                <li><a href="#" className="hover:text-emerald-600 transition-colors">Our Guaranty</a></li>
+                <li><a href="#" className="hover:text-emerald-600 transition-colors">Verified Feedback</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">Our Guaranty</h4>
+              <ul className="space-y-4 text-sm font-bold text-slate-500">
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                  <span>14-Day Return Policy on all laptops</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                  <span>Real Hardware Warranty</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                  <span>Honest Condition Reporting</span>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">Contact Info</h4>
+              <ul className="space-y-4 text-sm font-bold text-slate-500">
+                <li className="flex items-start gap-3">
+                  <Phone className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                  <span>07013306552, 07041533750</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Mail className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                  <a href="mailto:ugwokejames84@gmail.com" className="hover:text-emerald-600 transition-colors">ugwokejames84@gmail.com</a>
+                </li>
+                <li className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                  <span>Abuja, Wuse / Wuse 2, Nigeria</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-xs font-bold text-slate-400">
+              © 2026 YaksonThreeSons Ltd. Based on real customer feedback (46 good, 3 bad).
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Verified on</span>
+              <span className="text-sm font-black text-slate-900">Jiji</span>
+            </div>
+          </div>
+        </div>
+      </motion.footer>
+
+      {/* --- Sidebars & Modals --- */}
+      
+      {/* Cart Sidebar */}
+      <AnimatePresence>
+        {isCartOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCartOpen(false)}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60]"
+            />
+            <motion.aside 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={SIDEBAR_TRANSITION}
+              className="fixed top-0 right-0 h-full w-full max-w-md bg-white z-[70] shadow-2xl flex flex-col"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ShoppingCart className="w-6 h-6 text-emerald-600" />
+                  <h3 className="text-xl font-black text-slate-900">Your Cart</h3>
+                </div>
+                <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {cart.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center">
+                    <div className="bg-slate-50 p-6 rounded-full mb-4">
+                      <ShoppingCart className="w-10 h-10 text-slate-200" />
+                    </div>
+                    <p className="text-slate-500 font-bold">Your cart is empty</p>
+                    <button 
+                      onClick={() => setIsCartOpen(false)}
+                      className="mt-4 text-emerald-600 font-black text-sm hover:underline"
+                    >
+                      Start Shopping
+                    </button>
+                  </div>
+                ) : (
+                  cart.map(item => (
+                    <div key={item.id} className="flex gap-4 group">
+                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
+                        <SmartImage 
+                          src={`/photos/${item.id}.jpg`} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover" 
+                          placeholderSeed={`laptop-${item.id}`}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-black text-slate-900 mb-1 line-clamp-1">{item.name}</h4>
+                        <div className="text-xs font-bold text-emerald-600 mb-2">
+                          <FormatCurrency amount={item.price} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 bg-slate-100 rounded-lg px-2 py-1">
+                            <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:text-emerald-600"><Minus className="w-3 h-3" /></button>
+                            <span className="text-xs font-black w-4 text-center">{item.quantity}</span>
+                            <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:text-emerald-600"><Plus className="w-3 h-3" /></button>
+                          </div>
+                          <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-rose-500 transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {cart.length > 0 && (
+                <div className="p-6 bg-slate-50 border-t border-slate-200 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-bold text-slate-500">Subtotal</span>
+                    <span className="text-xl font-black text-slate-900">
+                      <FormatCurrency amount={cart.reduce((acc, item) => acc + (item.price * item.quantity), 0)} />
+                    </span>
+                  </div>
+                  <p className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-wider">
+                    Contact YaksonThreeSons Ltd via WhatsApp to complete purchase
+                  </p>
+                  <button 
+                    onClick={handleCheckout}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-200"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    Checkout via WhatsApp
+                  </button>
+                </div>
+              )}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Elements */}
+      <div className="fixed bottom-8 right-8 z-40 flex flex-col gap-4">
+        <motion.button
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: window.scrollY > 300 ? 1 : 0, scale: window.scrollY > 300 ? 1 : 0 }}
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="p-4 bg-white text-emerald-600 rounded-full shadow-2xl border border-emerald-100 hover:bg-emerald-50 transition-colors"
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+        >
+          <ArrowUpDown className="w-6 h-6 rotate-180" />
+        </motion.button>
+        
+        <motion.a
+          href="https://wa.me/2347013306552?text=Hi%20YaksonThreeSons%20Ltd%2C%20I%20have%20a%20question%20about%20your%20laptops."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-4 bg-emerald-500 text-white rounded-full shadow-2xl animate-float hover:bg-emerald-600 transition-colors relative group"
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+        >
+          <MessageCircle className="w-6 h-6" />
+          <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-slate-100">
+            Chat with us!
+          </span>
+          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white rounded-full animate-ping" />
+        </motion.a>
+      </div>
+      <AnimatePresence>
+        {isWishlistOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsWishlistOpen(false)}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60]"
+            />
+            <motion.aside 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={SIDEBAR_TRANSITION}
+              className="fixed top-0 right-0 h-full w-full max-w-md bg-white z-[70] shadow-2xl flex flex-col"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Heart className="w-6 h-6 text-rose-500" />
+                  <h3 className="text-xl font-black text-slate-900">Your Wishlist</h3>
+                </div>
+                <button onClick={() => setIsWishlistOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {wishlist.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center">
+                    <div className="bg-slate-50 p-6 rounded-full mb-4">
+                      <Heart className="w-10 h-10 text-slate-200" />
+                    </div>
+                    <p className="text-slate-500 font-bold">Your wishlist is empty</p>
+                  </div>
+                ) : (
+                  wishlist.map(id => {
+                    const laptop = laptops.find(l => l.id === id);
+                    if (!laptop) return null;
+                    return (
+                      <div key={laptop.id} className="flex gap-4 group">
+                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
+                          <SmartImage 
+                            src={`/photos/${laptop.id}.jpg`} 
+                            alt={laptop.name} 
+                            className="w-full h-full object-cover" 
+                            placeholderSeed={`laptop-${laptop.id}`}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-black text-slate-900 mb-1 line-clamp-1">{laptop.name}</h4>
+                          <div className="text-xs font-bold text-emerald-600 mb-2">
+                            <FormatCurrency amount={laptop.price} />
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <button 
+                              onClick={(e) => {
+                                addToCart(laptop, e);
+                                toggleWishlist(laptop.id);
+                              }}
+                              className="text-xs font-black text-emerald-600 hover:underline"
+                            >
+                              Move to Cart
+                            </button>
+                            <button 
+                              onClick={() => toggleWishlist(laptop.id)}
+                              className="text-xs font-black text-slate-400 hover:text-rose-500 transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Quick View Modal */}
+      <AnimatePresence>
+        {quickViewId && quickViewLaptop && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setQuickViewId(null)}
+              className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[80]"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.6, ease: EASE_OUT_QUINT }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-4xl bg-white z-[90] rounded-[2rem] overflow-hidden shadow-2xl"
+            >
+              <div className="md:flex h-full max-h-[90vh] overflow-y-auto md:overflow-hidden">
+                <div className="md:w-1/2 bg-slate-100 relative">
+                  <SmartImage 
+                    src={`/photos/${quickViewLaptop.id}.jpg`} 
+                    alt={quickViewLaptop.name} 
+                    className="w-full h-full object-cover"
+                    placeholderSeed={`laptop-${quickViewLaptop.id}`}
+                  />
+                  <button 
+                    onClick={() => setQuickViewId(null)}
+                    className="absolute top-6 left-6 p-2 bg-white/80 backdrop-blur-sm rounded-full md:hidden"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                <div className="md:w-1/2 p-8 md:p-12 flex flex-col">
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <span className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-2 block">{quickViewLaptop.brand}</span>
+                      <h2 className="text-2xl font-black text-slate-900 leading-tight">{quickViewLaptop.name}</h2>
+                    </div>
+                    <button onClick={() => setQuickViewId(null)} className="hidden md:block p-2 hover:bg-slate-100 rounded-full transition-colors">
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="text-3xl font-black text-emerald-600">
+                      <FormatCurrency amount={quickViewLaptop.price} />
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      quickViewLaptop.condition === 'Brand New' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      {quickViewLaptop.condition}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6 mb-8">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Processor</span>
+                      <p className="text-sm font-black text-slate-900">{quickViewLaptop.cpu}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Memory</span>
+                      <p className="text-sm font-black text-slate-900">{quickViewLaptop.ram} RAM</p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Storage</span>
+                      <p className="text-sm font-black text-slate-900">{quickViewLaptop.storage}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Display</span>
+                      <p className="text-sm font-black text-slate-900">{quickViewLaptop.screen} Screen</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-8">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <span className="text-xs font-bold text-slate-900">YaksonThreeSons Ltd Guarantee</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      "We operate in honest form and our guaranty is real. 14-day return policy and full hardware support included."
+                    </p>
+                  </div>
+
+                  <div className="mt-auto flex flex-col gap-3">
+                    <button 
+                      onClick={(e) => addToCart(quickViewLaptop, e)}
+                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95"
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                      Add to Cart
+                    </button>
+                    <div className="grid grid-cols-2 gap-3">
+                      <a 
+                        href={getWhatsAppProductUrl(quickViewLaptop)} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-all"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        WhatsApp
+                      </a>
+                      <a href="tel:07013306552" className="bg-white border border-slate-200 hover:border-emerald-600 hover:text-emerald-600 text-slate-900 font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-all">
+                        <Phone className="w-4 h-4" />
+                        Call Now
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Filter Sidebar */}
+      <AnimatePresence>
+        {isMobileFilterOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileFilterOpen(false)}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60]"
+            />
+            <motion.aside 
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={SIDEBAR_TRANSITION}
+              className="fixed top-0 left-0 h-full w-full max-w-xs bg-white z-[70] shadow-2xl flex flex-col"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-xl font-black text-slate-900">Filters</h3>
+                <button onClick={() => setIsMobileFilterOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                <FilterSection title="Condition" options={["Used", "Brand New"]} field="condition" filters={filters} setFilters={setFilters} />
+                <FilterSection title="Brand" options={["HP", "Apple", "Dell", "Lenovo"]} field="brand" filters={filters} setFilters={setFilters} />
+                <FilterSection title="CPU" options={["i3", "i5", "i7"]} field="cpu" filters={filters} setFilters={setFilters} />
+                <FilterSection title="RAM" options={["8GB", "12GB", "16GB"]} field="ram" filters={filters} setFilters={setFilters} />
+                <FilterSection title="Storage" options={["128GB SSD", "256GB SSD", "512GB SSD", "1TB SSD", "1TB HDD"]} field="storage" filters={filters} setFilters={setFilters} />
+              </div>
+              <div className="p-6 border-t border-slate-100">
+                <button 
+                  onClick={() => setIsMobileFilterOpen(false)}
+                  className="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
