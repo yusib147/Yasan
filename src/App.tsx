@@ -50,23 +50,25 @@ interface LaptopData {
 }
 
 // --- Components ---
-const SmartImage = ({ src, alt, className, placeholderSeed }: { src: string, alt: string, className?: string, placeholderSeed?: string }) => {
+const SmartImage = ({ src, alt, className }: { src: string, alt: string, className?: string }) => {
   const [currentSrc, setCurrentSrc] = useState(src);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [failedAll, setFailedAll] = useState(false);
   const triedRef = React.useRef<string[]>([]);
   
-  const extensions = ['.webp', '.jpg', '.jpeg', '.png', '.JPG', '.PNG', '.JPEG', '.WEBP'];
+  const extensions = ['.png', '.PNG', '.webp', '.WEBP', '.jpg', '.JPG', '.jpeg', '.JPEG'];
 
   useEffect(() => {
     setCurrentSrc(src);
     triedRef.current = [];
     setIsLoaded(false);
+    setFailedAll(false);
   }, [src]);
 
   const handleError = () => {
     const lastDotIndex = currentSrc.lastIndexOf('.');
     if (lastDotIndex === -1) {
-      setCurrentSrc(`https://picsum.photos/seed/${placeholderSeed || 'laptop'}/800/600`);
+      setFailedAll(true);
       return;
     }
 
@@ -81,10 +83,18 @@ const SmartImage = ({ src, alt, className, placeholderSeed }: { src: string, alt
     
     if (nextExt) {
       setCurrentSrc(`${base}${nextExt}`);
-    } else if (!currentSrc.includes('picsum.photos')) {
-      setCurrentSrc(`https://picsum.photos/seed/${placeholderSeed || 'laptop'}/800/600`);
+    } else {
+      setFailedAll(true);
     }
   };
+
+  if (failedAll) {
+    return (
+      <div className={`${className} flex items-center justify-center bg-slate-100 text-slate-300`}>
+        <Laptop className="w-12 h-12" />
+      </div>
+    );
+  }
 
   return (
     <motion.img 
@@ -170,7 +180,6 @@ const Logo = ({ className = "w-6 h-6" }: { className?: string }) => {
       src="/photos/logo.png" 
       alt="Yakson Logo" 
       className={`${className} object-contain`}
-      placeholderSeed="tech-logo"
     />
   );
 };
@@ -224,10 +233,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
       {/* Image Area */}
       <div className="relative h-64 overflow-hidden bg-slate-50">
         <SmartImage 
-          src={`/photos/${laptop.id}.jpg`} 
+          src={`/photos/${laptop.id}.png`} 
           alt={laptop.name} 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
-          placeholderSeed={`laptop-${laptop.id}`}
         />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-500" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -812,10 +820,9 @@ export default function App() {
             className="absolute inset-0"
           >
             <SmartImage 
-              src="/photos/hero.jpg" 
+              src="/photos/hero.png" 
               alt="Hero Background" 
               className="w-full h-full object-cover"
-              placeholderSeed="laptop-hero"
             />
           </motion.div>
           
@@ -956,10 +963,9 @@ export default function App() {
                 </div>
                 <div className="lg:w-1/2 bg-slate-900 relative min-h-[400px]">
                   <SmartImage 
-                    src="/photos/about.jpg" 
+                    src="/photos/about.png" 
                     alt="Our Office" 
                     className="w-full h-full object-cover opacity-60"
-                    placeholderSeed="office"
                   />
                   <div className="absolute inset-0 flex items-center justify-center p-12">
                     <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-[2rem] text-white">
@@ -1407,10 +1413,9 @@ export default function App() {
                     <div key={item.id} className="flex gap-4 group">
                       <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
                         <SmartImage 
-                          src={`/photos/${item.id}.jpg`} 
+                          src={`/photos/${item.id}.png`} 
                           alt={item.name} 
                           className="w-full h-full object-cover" 
-                          placeholderSeed={`laptop-${item.id}`}
                         />
                       </div>
                       <div className="flex-1">
@@ -1530,10 +1535,9 @@ export default function App() {
                       <div key={laptop.id} className="flex gap-4 group">
                         <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
                           <SmartImage 
-                            src={`/photos/${laptop.id}.jpg`} 
+                            src={`/photos/${laptop.id}.png`} 
                             alt={laptop.name} 
                             className="w-full h-full object-cover" 
-                            placeholderSeed={`laptop-${laptop.id}`}
                           />
                         </div>
                         <div className="flex-1">
@@ -1590,10 +1594,9 @@ export default function App() {
               <div className="md:flex h-full max-h-[90vh] overflow-y-auto md:overflow-hidden">
                 <div className="md:w-1/2 bg-slate-100 relative">
                   <SmartImage 
-                    src={`/photos/${quickViewLaptop.id}.jpg`} 
+                    src={`/photos/${quickViewLaptop.id}.png`} 
                     alt={quickViewLaptop.name} 
                     className="w-full h-full object-cover"
-                    placeholderSeed={`laptop-${quickViewLaptop.id}`}
                   />
                   <button 
                     onClick={() => setQuickViewId(null)}
