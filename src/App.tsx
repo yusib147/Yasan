@@ -52,10 +52,16 @@ interface LaptopData {
 // --- Components ---
 const SmartImage = ({ src, alt, className, placeholderSeed }: { src: string, alt: string, className?: string, placeholderSeed?: string }) => {
   const [currentSrc, setCurrentSrc] = useState(src);
-  const [triedExtensions, setTriedExtensions] = useState<string[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const triedRef = React.useRef<string[]>([]);
   
-  const extensions = ['.webp', '.jpg', '.jpeg', '.png', '.JPG', '.PNG', '.JPEG'];
+  const extensions = ['.webp', '.jpg', '.jpeg', '.png', '.JPG', '.PNG', '.JPEG', '.WEBP'];
+
+  useEffect(() => {
+    setCurrentSrc(src);
+    triedRef.current = [];
+    setIsLoaded(false);
+  }, [src]);
 
   const handleError = () => {
     const lastDotIndex = currentSrc.lastIndexOf('.');
@@ -67,10 +73,13 @@ const SmartImage = ({ src, alt, className, placeholderSeed }: { src: string, alt
     const currentExt = currentSrc.substring(lastDotIndex);
     const base = currentSrc.substring(0, lastDotIndex);
     
-    const nextExt = extensions.find(ext => ext.toLowerCase() !== currentExt.toLowerCase() && !triedExtensions.includes(ext.toLowerCase()));
+    if (!triedRef.current.includes(currentExt)) {
+      triedRef.current.push(currentExt);
+    }
+
+    const nextExt = extensions.find(ext => !triedRef.current.includes(ext));
     
     if (nextExt) {
-      setTriedExtensions(prev => [...prev, currentExt.toLowerCase()]);
       setCurrentSrc(`${base}${nextExt}`);
     } else if (!currentSrc.includes('picsum.photos')) {
       setCurrentSrc(`https://picsum.photos/seed/${placeholderSeed || 'laptop'}/800/600`);
