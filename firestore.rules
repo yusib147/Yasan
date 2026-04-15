@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: site_images
+    // Document ID: {imageId} (matches the 'id' field)
+    // Fields:
+    //   - id: string (required) - unique identifier
+    //   - url: string (required) - base64 image data
+    //   - updatedAt: timestamp (required) - last update time
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // For now, we allow the specific user email to be admin
+      // In a real app, you'd check a 'users' collection for roles
+      return isAuthenticated() && 
+             (request.auth.token.email == "yusibrahim147@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function isValidImage(data) {
+      return data.keys().hasAll(['id', 'url', 'updatedAt']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.url is string && data.url.size() < 1048576 && // Max 1MB for base64
+             data.updatedAt is timestamp;
+    }
+
+    match /site_images/{imageId} {
+      // Anyone can read the images
+      allow read: if true;
+      
+      // Only admin can write/update/delete
+      allow create, update, delete: if isAdmin() && isValidImage(request.resource.data);
+    }
+  }
+}

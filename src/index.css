@@ -108,6 +108,7 @@
 .animate-shimmer {
   position: relative;
   overflow: hidden;
+  animation: shimmer 2s infinite;
 }
 .animate-shimmer::after {
   content: "";
@@ -150,4 +151,15 @@
 .no-scrollbar {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+}
+
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
+}
+
+.gpu {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
 }

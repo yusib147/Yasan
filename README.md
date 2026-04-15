@@ -1,20 +1,79 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# YaksonThreeSons Ltd - Premium Laptop Store
 
-# Run and deploy your AI Studio app
+A premium web application for YaksonThreeSons Ltd, featuring high-end laptop sales with a smooth, cinematic user experience.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/c6822c69-79ca-4d4a-bc78-f8dc1a6dbc74
+- **Premium Preloader**: Cinematic entry experience with asset tracking (images, videos, fonts).
+- **Product Gallery**: High-quality product display with quick view specifications.
+- **Real-time Search & Filters**: Easily find laptops by brand, condition, or specs.
+- **Cart & Wishlist**: Persistent shopping experience.
+- **Responsive Design**: Optimized for all devices with a focus on premium aesthetics.
 
-## Run Locally
+## Tech Stack
 
-**Prerequisites:**  Node.js
+- **Frontend**: React 19, Vite, TypeScript
+- **Styling**: Tailwind CSS
+- **Animations**: Framer Motion
+- **Icons**: Lucide React
+- **Backend**: Firebase (Firestore & Auth)
 
+## Getting Started
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Prerequisites
+
+- Node.js (v18+)
+- npm
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <your-repo-url>
+   cd yakson-three-sons
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Configure Firebase:
+   - Create a project in the [Firebase Console](https://console.firebase.google.com/).
+   - Enable Firestore and Authentication (Google Login).
+   - Copy your Firebase configuration and update `src/firebase.ts` or create a `firebase-applet-config.json`.
+
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+## Deployment
+
+### GitHub
+
+1. Create a new repository on GitHub.
+2. Push your code:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin <your-repo-url>
+   git push -u origin main
+   ```
+
+### Netlify
+
+This project is ready for Netlify deployment.
+
+1. Connect your GitHub repository to Netlify.
+2. The `netlify.toml` file is already configured with:
+   - **Build Command**: `npm run build`
+   - **Publish Directory**: `dist`
+   - **SPA Redirects**: Handles client-side routing.
+3. Netlify will automatically build and deploy your site on every push to `main`.
+
+## License
+
+Private - YaksonThreeSons Ltd.

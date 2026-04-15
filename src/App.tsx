@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Search, 
   Heart, 
@@ -29,6 +29,14 @@ import {
   Quote
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { db } from './firebase';
+import { 
+  collection, 
+  doc, 
+  onSnapshot, 
+  query, 
+  orderBy 
+} from 'firebase/firestore';
 
 // --- Constants ---
 const SMOOTH_TRANSITION = { type: "spring", damping: 30, stiffness: 300 };
@@ -47,48 +55,17 @@ interface LaptopData {
   storage: string;
   screen: string;
   location: string;
+  image?: string;
 }
 
 // --- Components ---
-const SmartImage = ({ src, alt, className }: { src: string, alt: string, className?: string }) => {
-  const [currentSrc, setCurrentSrc] = useState(src);
+const SmartImage = ({ src, alt, className, priority = false }: { src?: string, alt: string, className?: string, priority?: boolean }) => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [failedAll, setFailedAll] = useState(false);
-  const triedRef = React.useRef<string[]>([]);
+  const [failed, setFailed] = useState(false);
   
-  const extensions = ['.png', '.PNG', '.webp', '.WEBP', '.jpg', '.JPG', '.jpeg', '.JPEG'];
+  const displaySrc = src || '';
 
-  useEffect(() => {
-    setCurrentSrc(src);
-    triedRef.current = [];
-    setIsLoaded(false);
-    setFailedAll(false);
-  }, [src]);
-
-  const handleError = () => {
-    const lastDotIndex = currentSrc.lastIndexOf('.');
-    if (lastDotIndex === -1) {
-      setFailedAll(true);
-      return;
-    }
-
-    const currentExt = currentSrc.substring(lastDotIndex);
-    const base = currentSrc.substring(0, lastDotIndex);
-    
-    if (!triedRef.current.includes(currentExt)) {
-      triedRef.current.push(currentExt);
-    }
-
-    const nextExt = extensions.find(ext => !triedRef.current.includes(ext));
-    
-    if (nextExt) {
-      setCurrentSrc(`${base}${nextExt}`);
-    } else {
-      setFailedAll(true);
-    }
-  };
-
-  if (failedAll) {
+  if (!displaySrc || failed) {
     return (
       <div className={`${className} flex items-center justify-center bg-slate-100 text-slate-300`}>
         <Laptop className="w-12 h-12" />
@@ -97,18 +74,23 @@ const SmartImage = ({ src, alt, className }: { src: string, alt: string, classNa
   }
 
   return (
-    <motion.img 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: isLoaded ? 1 : 0 }}
-      transition={{ duration: 0.5 }}
-      src={currentSrc} 
-      alt={alt} 
-      className={className} 
-      onLoad={() => setIsLoaded(true)}
-      onError={handleError}
-      loading="lazy"
-      referrerPolicy="no-referrer"
-    />
+    <div className={`${className} relative overflow-hidden`}>
+      {!isLoaded && (
+        <div className="absolute inset-0 bg-slate-100 animate-shimmer" />
+      )}
+      <motion.img 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isLoaded ? 1 : 0 }}
+        transition={{ duration: 0.5 }}
+        src={displaySrc} 
+        alt={alt} 
+        className="w-full h-full object-cover" 
+        onLoad={() => setIsLoaded(true)}
+        onError={() => setFailed(true)}
+        loading={priority ? "eager" : "lazy"}
+        referrerPolicy="no-referrer"
+      />
+    </div>
   );
 };
 
@@ -133,24 +115,89 @@ const reviews: Review[] = [
   { id: 5, name: "Ralph Kenny", text: "The deal went well. The seller was very friendly and accomodating. I got exactly what i wanted. Great deal at the end. I am giving him 5 star.", rating: 5, date: "16/12/22" }
 ];
 const laptops: LaptopData[] = [
-  { id: 1, name: "HP Pavilion 15-Cs3063cl", price: 700000, condition: "Used", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "512GB SSD", screen: "15.6\"", location: "Abuja, Wuse 2" },
-  { id: 2, name: "HP Pavilion 15t", price: 380000, condition: "Used", brand: "HP", cpu: "Intel Core i5", ram: "12GB", storage: "512GB SSD", screen: "15.6\"", location: "Abuja, Wuse" },
-  { id: 3, name: "Apple MacBook Air 2015", price: 300000, condition: "Used", brand: "Apple", cpu: "Intel Core i5", ram: "8GB", storage: "128GB SSD", screen: "13.3\"", location: "Abuja, Wuse" },
-  { id: 4, name: "HP EliteBook 840 G7", price: 500000, condition: "Used", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "256GB SSD", screen: "13.3\"", location: "Abuja, Wuse" },
-  { id: 5, name: "HP 15", price: 350000, condition: "Used", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "1TB HDD", screen: "15.6\"", location: "Abuja, Wuse" },
-  { id: 6, name: "HP EliteBook 840 G5", price: 500000, condition: "Used", brand: "HP", cpu: "Intel Core i7", ram: "16GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse" },
-  { id: 7, name: "Apple MacBook Pro 2018", price: 850000, condition: "Used", brand: "Apple", cpu: "Intel Core i7", ram: "16GB", storage: "512GB SSD", screen: "13.3\"", location: "Abuja, Wuse" },
-  { id: 8, name: "HP Envy 14", price: 1000000, condition: "Used", brand: "HP", cpu: "Intel Core i7", ram: "16GB", storage: "1TB SSD", screen: "14\"", location: "Abuja, Wuse" },
-  { id: 9, name: "HP EliteBook 840 G8", price: 600000, condition: "Used", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse" },
-  { id: 10, name: "Dell Latitude 5401", price: 380000, condition: "Used", brand: "Dell", cpu: "Intel Core i5", ram: "16GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse" },
-  { id: 11, name: "HP EliteBook 840 G5", price: 300000, condition: "Used", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "256GB SSD", screen: "14\"", location: "Abuja, Wuse" },
-  { id: 12, name: "Apple MacBook Pro 2020", price: 950000, condition: "Used", brand: "Apple", cpu: "Intel Core i5", ram: "8GB", storage: "256GB SSD", screen: "13.3\"", location: "Abuja, Wuse" },
-  { id: 13, name: "HP 14z", price: 550000, condition: "Brand New", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse" },
-  { id: 14, name: "Lenovo ThinkPad T14", price: 550000, condition: "Used", brand: "Lenovo", cpu: "Intel Core i5", ram: "16GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse" },
-  { id: 15, name: "Dell Latitude 7380", price: 750000, condition: "Used", brand: "Dell", cpu: "Intel Core i7", ram: "16GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse" }
+  { id: 1, name: "HP Pavilion 15-Cs3063cl", price: 700000, condition: "Open Box", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "512GB SSD", screen: "15.6\"", location: "Abuja, Wuse 2", image: "https://github.com/user-attachments/assets/33b3643d-c04f-4e0e-8f0b-6b41984c0f1b" },
+  { id: 2, name: "HP Pavilion 15t", price: 380000, condition: "Open Box", brand: "HP", cpu: "Intel Core i5", ram: "12GB", storage: "512GB SSD", screen: "15.6\"", location: "Abuja, Wuse", image: "https://github.com/user-attachments/assets/17b7f109-4061-472c-9ad0-f380650cdcba" },
+  { id: 3, name: "Apple MacBook Air 2015", price: 300000, condition: "Open Box", brand: "Apple", cpu: "Intel Core i5", ram: "8GB", storage: "128GB SSD", screen: "13.3\"", location: "Abuja, Wuse", image: "https://github.com/user-attachments/assets/d44ab953-19d2-45fc-81bf-8e274d0baf47" },
+  { id: 4, name: "HP EliteBook 840 G7", price: 500000, condition: "Open Box", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "256GB SSD", screen: "13.3\"", location: "Abuja, Wuse", image: "https://github.com/user-attachments/assets/25e09e66-b0ac-41e1-bc38-66fcc4875afb" },
+  { id: 5, name: "HP 15", price: 350000, condition: "Open Box", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "1TB HDD", screen: "15.6\"", location: "Abuja, Wuse", image: "https://github.com/user-attachments/assets/dd13ae92-d30a-426c-ba4b-8796595de7ae" },
+  { id: 6, name: "HP EliteBook 840 G5", price: 500000, condition: "Open Box", brand: "HP", cpu: "Intel Core i7", ram: "16GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse", image: "https://github.com/user-attachments/assets/d907ebe7-5775-4ed4-a423-e8df21ffa875" },
+  { id: 7, name: "Apple MacBook Pro 2014", price: 450000, condition: "Open Box", brand: "Apple", cpu: "Intel Core i7", ram: "16GB", storage: "256GB SSD", screen: "15.6\"", location: "Abuja, Wuse", image: "" },
+  { id: 8, name: "Apple MacBook Pro 2018", price: 850000, condition: "Open Box", brand: "Apple", cpu: "Intel Core i7", ram: "16GB", storage: "512GB SSD", screen: "13.3\"", location: "Abuja, Wuse", image: "" },
+  { id: 9, name: "HP Envy 14", price: 1000000, condition: "Open Box", brand: "HP", cpu: "Intel Core i7", ram: "16GB", storage: "1TB SSD", screen: "14\"", location: "Abuja, Wuse", image: "" }
 ];
 
 // --- Hooks ---
+const useAssetPreloader = (assets: { images: string[], videos: string[] }) => {
+  const [progress, setProgress] = useState(0);
+  const [isReady, setIsReady] = useState(false);
+  const [isFontsLoaded, setIsFontsLoaded] = useState(false);
+
+  useEffect(() => {
+    // Wait for fonts to be ready
+    if (document.fonts) {
+      document.fonts.ready.then(() => {
+        setIsFontsLoaded(true);
+      });
+    } else {
+      // Fallback for older browsers
+      setIsFontsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    let loadedCount = 0;
+    const totalAssets = assets.images.length + assets.videos.length;
+
+    if (totalAssets === 0) {
+      if (isFontsLoaded) setIsReady(true);
+      return;
+    }
+
+    const updateProgress = () => {
+      loadedCount++;
+      setProgress(Math.round((loadedCount / totalAssets) * 100));
+      if (loadedCount === totalAssets && isFontsLoaded) {
+        // Add a small delay for smooth transition
+        setTimeout(() => setIsReady(true), 800);
+      }
+    };
+
+    // Preload Images
+    assets.images.forEach(src => {
+      if (!src) {
+        updateProgress();
+        return;
+      }
+      const img = new Image();
+      img.src = src;
+      img.onload = updateProgress;
+      img.onerror = updateProgress;
+    });
+
+    // Preload Videos
+    assets.videos.forEach(src => {
+      if (!src) {
+        updateProgress();
+        return;
+      }
+      const video = document.createElement('video');
+      video.src = src;
+      video.preload = 'auto';
+      video.oncanplaythrough = updateProgress;
+      video.onerror = updateProgress;
+    });
+
+    // Safety timeout: force ready after 15 seconds if assets are hanging
+    const safetyTimeout = setTimeout(() => {
+      if (!isReady) setIsReady(true);
+    }, 15000);
+
+    return () => clearTimeout(safetyTimeout);
+  }, [assets, isFontsLoaded]);
+
+  return { progress, isReady: isReady && isFontsLoaded };
+};
+
 const useScrollProgress = () => {
   const [progress, setProgress] = useState(0);
   useEffect(() => {
@@ -168,19 +215,30 @@ const useScrollProgress = () => {
 };
 
 // --- Helper Components ---
-const Logo = ({ className = "w-6 h-6" }: { className?: string }) => {
-  const [error, setError] = useState(false);
-  
-  if (error) {
-    return <Laptop className={className} />;
-  }
+const EditableText = ({ id, defaultText, className, element: Element = 'span' }: { id: string, defaultText: string, className?: string, element?: any }) => {
+  const [text, setText] = useState(defaultText);
 
+  useEffect(() => {
+    const unsubText = onSnapshot(doc(db, 'site_content', id), (doc) => {
+      if (doc.exists()) setText(doc.data().text);
+    });
+    return () => unsubText();
+  }, [id]);
+
+  return <Element className={className}>{text}</Element>;
+};
+
+
+const Logo = ({ className = "w-6 h-6" }: { className?: string }) => {
   return (
-    <SmartImage 
-      src="/photos/logo.png" 
-      alt="Yakson Logo" 
-      className={`${className} object-contain`}
-    />
+    <div className="relative">
+      <SmartImage 
+        src="https://github.com/user-attachments/assets/fce1f9fe-ed54-4a21-bf27-035ebee54405" 
+        alt="Yakson Logo" 
+        className={`${className} object-contain`}
+        priority
+      />
+    </div>
   );
 };
 
@@ -192,6 +250,35 @@ const FormatCurrency = ({ amount }: { amount: number }) => {
   );
 };
 
+const ProductCardSkeleton = () => (
+  <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm flex flex-col h-full animate-pulse">
+    <div className="h-64 bg-slate-100 relative overflow-hidden">
+      <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+    </div>
+    <div className="p-7 flex-1 space-y-4">
+      <div className="flex justify-between">
+        <div className="h-3 bg-slate-100 rounded w-1/4" />
+        <div className="h-5 bg-slate-100 rounded w-1/5" />
+      </div>
+      <div className="h-6 bg-slate-100 rounded w-3/4" />
+      <div className="flex gap-2">
+        <div className="h-4 bg-slate-100 rounded w-12" />
+        <div className="h-4 bg-slate-100 rounded w-16" />
+      </div>
+      <div className="grid grid-cols-2 gap-4 pt-2">
+        <div className="h-3 bg-slate-50 rounded w-full" />
+        <div className="h-3 bg-slate-50 rounded w-full" />
+        <div className="h-3 bg-slate-50 rounded w-full" />
+        <div className="h-3 bg-slate-50 rounded w-full" />
+      </div>
+      <div className="pt-6 flex justify-between items-center">
+        <div className="h-8 bg-slate-100 rounded w-1/3" />
+        <div className="h-12 bg-slate-100 rounded-2xl w-1/2" />
+      </div>
+    </div>
+  </div>
+);
+
 interface ProductCardProps {
   laptop: LaptopData;
   onAddToCart: (l: LaptopData, e: React.MouseEvent) => void;
@@ -202,7 +289,7 @@ interface ProductCardProps {
   onMouseLeave: () => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ 
+const ProductCard: React.FC<ProductCardProps> = React.memo(({ 
   laptop, 
   onAddToCart, 
   onToggleWishlist, 
@@ -228,12 +315,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
       }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="group bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col"
+      onClick={onQuickView}
+      className="group bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col will-change-transform cursor-pointer"
     >
       {/* Image Area */}
       <div className="relative h-64 overflow-hidden bg-slate-50">
         <SmartImage 
-          src={`/photos/${laptop.id}.png`} 
+          src={laptop.image} 
           alt={laptop.name} 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
         />
@@ -251,14 +339,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
               Premium
             </span>
           )}
-          {laptop.id === 1 && (
-            <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary/90 text-white shadow-lg backdrop-blur-md">
-              Featured
-            </span>
-          )}
         </div>
         <button 
-          onClick={() => onToggleWishlist(laptop.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleWishlist(laptop.id);
+          }}
           className={`absolute top-5 right-5 p-2.5 rounded-full shadow-lg backdrop-blur-md transition-all active:scale-90 z-10 ${
             isWishlisted ? 'bg-rose-500 text-white' : 'bg-white/80 text-slate-900 hover:bg-white'
           }`}
@@ -279,13 +365,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
       {/* Content Area */}
       <div className="p-7 flex-1 flex flex-col relative">
         <div className="flex justify-between items-start mb-3">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{laptop.brand}</span>
-          <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-            <Clock className="w-3 h-3" />
-            Fast Reply
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            {laptop.brand}
+          </span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+              <Clock className="w-3 h-3" />
+              Fast Reply
+            </div>
           </div>
         </div>
-        <h3 className="text-xl font-black text-slate-900 mb-2 line-clamp-1 group-hover:text-emerald-700 transition-colors">{laptop.name}</h3>
+        <h3 className="text-xl font-black text-slate-900 mb-2 line-clamp-1 group-hover:text-emerald-700 transition-colors">
+          {laptop.name}
+        </h3>
         
         {/* Seller Feedback Summary */}
         <div className="flex items-center gap-3 mb-4">
@@ -299,7 +391,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-[11px] text-slate-500 mb-6 font-bold">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-            <span>{laptop.cpu.split(' ').pop()}</span>
+            <span>{laptop.cpu}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
@@ -331,6 +423,119 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </div>
     </motion.div>
+  );
+});
+
+const TableGallery = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.offsetWidth,
+          height: containerRef.current.offsetHeight
+        });
+      }
+    };
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
+
+  const tablePics = [
+    "https://github.com/user-attachments/assets/9408c2ca-a18a-4501-8c54-e0436aadb60e",
+    "https://github.com/user-attachments/assets/e8ca762a-0c06-4572-9153-c5a0ac7ef143",
+    "https://github.com/user-attachments/assets/65244a93-5b13-471a-8ed9-898f6b6ce7c9",
+    "https://github.com/user-attachments/assets/a7f68586-db45-4254-a929-f4612dca1fe5",
+    "https://github.com/user-attachments/assets/d45b80f5-c511-446d-8cab-ea0e16f4de72",
+    "https://github.com/user-attachments/assets/93662dd3-a777-4217-ac71-c73c767ecfac",
+  ];
+
+  return (
+    <div 
+      ref={containerRef}
+      className="relative w-full h-[500px] md:h-[700px] bg-[#e5e7eb] overflow-hidden rounded-[2.5rem] md:rounded-[4rem] border-4 md:border-8 border-white shadow-[inset_0_10px_40px_rgba(0,0,0,0.1)] mb-20 group/table"
+    >
+      {/* Table Texture/Pattern */}
+      <div className="absolute inset-0 opacity-40 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
+      
+      {/* Table Label */}
+      <div className="absolute top-6 md:top-10 left-1/2 -translate-x-1/2 z-50">
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="bg-white/90 backdrop-blur-xl px-4 md:px-8 py-2 md:py-3 rounded-xl md:rounded-2xl shadow-2xl border border-slate-200 flex items-center gap-2 md:gap-3"
+        >
+          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-500 rounded-full animate-pulse" />
+          <span className="text-[10px] md:text-xs font-black text-slate-900 uppercase tracking-[0.2em] md:tracking-[0.4em]">Interactive Table Gallery</span>
+        </motion.div>
+      </div>
+
+      {/* Scattered Cards */}
+      <div className="absolute inset-0">
+        {dimensions.width > 0 && tablePics.map((src, index) => {
+          const isMobile = dimensions.width < 768;
+          const cardW = isMobile ? 120 : 224;
+          const cardH = isMobile ? 160 : 288;
+          
+          // Responsive initial positions
+          const cols = isMobile ? 2 : 3;
+          const col = index % cols;
+          const row = Math.floor(index / cols);
+          
+          const initialX = isMobile 
+            ? (col * (dimensions.width / cols)) + (dimensions.width / cols - cardW) / 2
+            : (col * (dimensions.width / cols)) + (dimensions.width / cols - cardW) / 2;
+          const initialY = isMobile
+            ? (row * (dimensions.height / 3)) + (dimensions.height / 3 - cardH) / 2
+            : (row * (dimensions.height / 2)) + (dimensions.height / 2 - cardH) / 2;
+
+          return (
+            <motion.div
+              key={index}
+              drag
+              dragConstraints={{
+                left: -cardW / 2,
+                right: dimensions.width - cardW / 2,
+                top: -cardH / 2,
+                bottom: dimensions.height - cardH / 2
+              }}
+              dragElastic={0.4}
+              dragMomentum={true}
+              dragTransition={{ bounceStiffness: 400, bounceDamping: 20 }}
+              initial={{ 
+                x: initialX, 
+                y: initialY, 
+                rotate: (index % 2 === 0 ? 1 : -1) * (index * 4 + 4) 
+              }}
+              whileDrag={{ 
+                scale: 1.1, 
+                rotate: 0,
+                zIndex: 100,
+                boxShadow: "0 40px 80px -15px rgba(0,0,0,0.3)" 
+              }}
+              className="absolute w-[120px] h-[160px] md:w-56 md:h-72 bg-white p-1.5 md:p-3 rounded-xl md:rounded-2xl shadow-2xl cursor-grab active:cursor-grabbing border border-slate-100 will-change-transform"
+            >
+              <div className="w-full h-full rounded-lg md:rounded-xl overflow-hidden bg-slate-50 relative group/card">
+                <SmartImage src={src} alt={`Table Pic ${index + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-110" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
+                <div className="absolute bottom-2 md:bottom-3 left-2 md:left-3 right-2 md:right-3 text-white opacity-0 group-hover/card:opacity-100 transition-opacity">
+                  <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">Table Pic {index + 1}</p>
+                </div>
+              </div>
+              {/* Realistic Card Shadow */}
+              <div className="absolute -inset-1 bg-black/5 blur-xl -z-10 rounded-2xl" />
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Table Edge Shadow */}
+      <div className="absolute inset-x-0 bottom-0 h-16 md:h-24 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
+    </div>
   );
 };
 
@@ -373,7 +578,7 @@ const FilterSection = ({
   </div>
 );
 
-const ReviewSlider = () => {
+const ReviewSlider = React.memo(() => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -384,7 +589,7 @@ const ReviewSlider = () => {
   }, []);
 
   return (
-    <div className="relative overflow-hidden bg-white rounded-[2.5rem] border border-slate-100 p-8 md:p-12 shadow-xl shadow-slate-200/50">
+    <div className="relative overflow-hidden bg-white rounded-[2.5rem] border border-slate-100 p-8 md:p-12 shadow-xl shadow-slate-200/50 will-change-transform">
       <div className="absolute top-0 right-0 p-8 opacity-5">
         <Quote className="w-32 h-32 text-emerald-600" />
       </div>
@@ -440,7 +645,7 @@ const ReviewSlider = () => {
       </div>
     </div>
   );
-};
+});
 
 const PriceSectionSlider = ({ 
   title, 
@@ -510,6 +715,48 @@ const PriceSectionSlider = ({
 
 export default function App() {
   // --- State ---
+  const [dbLaptops, setDbLaptops] = useState<LaptopData[]>([]);
+
+  useEffect(() => {
+    const unsubLaptops = onSnapshot(query(collection(db, 'laptops'), orderBy('price', 'desc')), (snapshot) => {
+      const items: LaptopData[] = [];
+      snapshot.forEach((doc) => {
+        items.push({ id: doc.id as any, ...doc.data() } as LaptopData);
+      });
+      setDbLaptops(items);
+    });
+
+    return () => {
+      unsubLaptops();
+    };
+  }, []);
+
+  const allLaptops = useMemo(() => dbLaptops.length > 0 ? dbLaptops : laptops, [dbLaptops]);
+
+  // Assets to preload
+  const assetsToPreload = useMemo(() => ({
+    images: [
+      "https://github.com/user-attachments/assets/fce1f9fe-ed54-4a21-bf27-035ebee54405", // Logo
+      "https://github.com/user-attachments/assets/eca61550-3dad-4abd-9837-2358c9b3cef4", // Hero
+      "https://github.com/user-attachments/assets/23d7e7eb-0a89-4ff5-9b06-02e185540cdf", // About
+      "https://github.com/user-attachments/assets/33b3643d-c04f-4e0e-8f0b-6b41984c0f1b",
+      "https://github.com/user-attachments/assets/17b7f109-4061-472c-9ad0-f380650cdcba",
+      "https://github.com/user-attachments/assets/d44ab953-19d2-45fc-81bf-8e274d0baf47",
+      "https://github.com/user-attachments/assets/25e09e66-b0ac-41e1-bc38-66fcc4875afb",
+      "https://github.com/user-attachments/assets/dd13ae92-d30a-426c-ba4b-8796595de7ae",
+      "https://github.com/user-attachments/assets/d907ebe7-5775-4ed4-a423-e8df21ffa875",
+      "https://picsum.photos/seed/macpro2014/800/1000",
+      "https://picsum.photos/seed/macpro2018/800/1000",
+      "https://picsum.photos/seed/hpenvy14/800/1000",
+      ...allLaptops.map(l => l.image).filter(Boolean) as string[]
+    ],
+    videos: [
+      "https://github.com/user-attachments/assets/fa81ead4-66cc-4077-b760-77d4ce1be31f" // Jiji Video
+    ]
+  }), [allLaptops]);
+
+  const { progress: loadProgress, isReady: assetsReady } = useAssetPreloader(assetsToPreload);
+
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('yakson_cart');
     return saved ? JSON.parse(saved) : [];
@@ -535,18 +782,19 @@ export default function App() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Sync isLoading with assetsReady
+  useEffect(() => {
+    if (assetsReady) {
+      setIsLoading(false);
+    }
+  }, [assetsReady]);
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isHovering, setIsHovering] = useState(false);
 
-  const phrases = ["Trusted Laptops Nationwide", "Used & Brand New", "Honest Form & Real Guaranty"];
+  const phrases = ["Trusted Laptops Nationwide", "Open Box & Brand New", "Honest Form & Real Guaranty"];
 
   // --- Effects ---
-  useEffect(() => {
-    // Simulate preloading assets
-    const timeout = setTimeout(() => setIsLoading(false), 2000);
-    return () => clearTimeout(timeout);
-  }, []);
-
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -562,8 +810,9 @@ export default function App() {
 
   // --- Logic ---
   const filteredLaptops = useMemo(() => {
-    let result = laptops.filter(laptop => {
-      const matchesSearch = laptop.name.toLowerCase().includes(searchQuery.toLowerCase());
+    let result = allLaptops.filter(laptop => {
+      const matchesSearch = laptop.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          laptop.brand.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCondition = filters.condition.length === 0 || filters.condition.includes(laptop.condition);
       const matchesBrand = filters.brand.length === 0 || filters.brand.includes(laptop.brand);
       const matchesCpu = filters.cpu.length === 0 || filters.cpu.some(c => laptop.cpu.includes(c));
@@ -580,7 +829,7 @@ export default function App() {
       result.sort((a, b) => b.price - a.price);
     }
 
-    return result;
+    return result.slice(0, 6);
   }, [searchQuery, filters, sortBy]);
 
   const [isCartShaking, setIsCartShaking] = useState(false);
@@ -690,7 +939,7 @@ export default function App() {
     setSortBy('default');
   };
 
-  const quickViewLaptop = laptops.find(l => l.id === quickViewId);
+  const quickViewLaptop = allLaptops.find(l => l.id === quickViewId);
 
   // --- Price Grouping for Slider ---
   const groupedLaptops = useMemo(() => {
@@ -701,39 +950,125 @@ export default function App() {
     };
   }, [filteredLaptops]);
 
+  const scrollProgress = useScrollProgress();
+  const heroY = scrollProgress * 200;
+
   return (
     <div className="min-h-screen bg-warm-bg font-sans text-slate-900 noise-bg">
       {/* Full Page Preloader */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isLoading && (
           <motion.div
+            key="preloader"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1, ease: EASE_OUT_QUINT }}
-            className="fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center"
+            exit={{ 
+              opacity: 0,
+              scale: 1.1,
+              filter: "blur(20px)",
+              transition: { duration: 1.2, ease: [0.23, 1, 0.32, 1] }
+            }}
+            className="fixed inset-0 z-[200] bg-slate-950 flex flex-col items-center justify-center overflow-hidden"
           >
+            {/* Animated Background Elements */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <motion.div 
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.1, 0.2, 0.1],
+                  rotate: [0, 90, 0]
+                }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                className="absolute -top-1/2 -left-1/2 w-full h-full bg-emerald-500/10 rounded-full blur-[120px]"
+              />
+              <motion.div 
+                animate={{ 
+                  scale: [1.2, 1, 1.2],
+                  opacity: [0.1, 0.15, 0.1],
+                  rotate: [0, -90, 0]
+                }}
+                transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-emerald-600/10 rounded-full blur-[120px]"
+              />
+            </div>
+
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.8, ease: EASE_OUT_QUINT }}
-              className="flex flex-col items-center"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 1, ease: EASE_OUT_QUINT }}
+              className="flex flex-col items-center relative z-10"
             >
-              <div className="relative mb-8">
-                <Logo className="w-16 h-16 text-emerald-600 animate-pulse" />
+              <div className="relative mb-12 group">
+                <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full scale-150 animate-pulse" />
+                <Logo className="w-24 h-24 text-emerald-500 relative z-10 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
                 <motion.div
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="absolute -inset-4 border-2 border-emerald-100 border-t-emerald-600 rounded-full"
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  className="absolute -inset-6 border border-emerald-500/20 border-t-emerald-500 rounded-full"
+                />
+                <motion.div
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                  className="absolute -inset-10 border border-emerald-500/10 border-b-emerald-500/30 rounded-full"
                 />
               </div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-2">YaksonThreeSons Ltd</h2>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+
+              <div className="text-center mb-12">
+                <motion.h2 
+                  initial={{ letterSpacing: "0.2em", opacity: 0 }}
+                  animate={{ letterSpacing: "0.5em", opacity: 1 }}
+                  transition={{ duration: 1.5, ease: EASE_OUT_QUINT }}
+                  className="text-3xl font-black text-white uppercase mb-4"
+                >
+                  YaksonThreeSons
+                </motion.h2>
+                <div className="flex items-center justify-center gap-4">
+                  <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-emerald-500/50" />
+                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em]">Premium Tech Experience</span>
+                  <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-emerald-500/50" />
+                </div>
               </div>
-              <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Honest Deals Only</p>
+              
+              {/* Progress Bar Container */}
+              <div className="w-80 relative">
+                <div className="flex justify-between items-end mb-3">
+                  <span className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest">System Initialization</span>
+                  <span className="text-xl font-black text-white tabular-nums">{loadProgress}%</span>
+                </div>
+                <div className="h-1 bg-white/5 rounded-full overflow-hidden backdrop-blur-sm">
+                  <motion.div 
+                    className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 relative"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${loadProgress}%` }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                  >
+                    <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.3)_50%,transparent_100%)] animate-[shimmer_2s_infinite]" />
+                  </motion.div>
+                </div>
+                <div className="mt-4 flex flex-col items-center gap-2">
+                  <motion.p 
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]"
+                  >
+                    {loadProgress < 30 ? "Calibrating Interface..." : 
+                     loadProgress < 60 ? "Optimizing Visual Assets..." : 
+                     loadProgress < 90 ? "Finalizing Premium Experience..." : 
+                     "Ready for Entry"}
+                  </motion.p>
+                </div>
+              </div>
             </motion.div>
+
+            {/* Bottom Branding */}
+            <div className="absolute bottom-12 left-0 right-0 flex flex-col items-center gap-4 opacity-40">
+              <div className="flex items-center gap-6">
+                <span className="text-[8px] font-black text-white uppercase tracking-[0.5em]">Abuja</span>
+                <div className="w-1 h-1 bg-emerald-500 rounded-full" />
+                <span className="text-[8px] font-black text-white uppercase tracking-[0.5em]">Lagos</span>
+                <div className="w-1 h-1 bg-emerald-500 rounded-full" />
+                <span className="text-[8px] font-black text-white uppercase tracking-[0.5em]">Nationwide</span>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -812,21 +1147,31 @@ export default function App() {
 
       <main>
         {/* --- Hero Section --- */}
-        <section className="relative h-[85vh] min-h-[600px] flex items-center justify-center overflow-hidden bg-slate-900">
+        <section className="relative h-[85vh] min-h-[600px] flex items-center justify-center overflow-hidden bg-slate-950">
           <motion.div 
             initial={{ scale: 1.1, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.5 }}
-            transition={{ duration: 2, ease: EASE_OUT_QUINT }}
+            animate={{ 
+              scale: [1.1, 1.2],
+              opacity: 0.6,
+              y: heroY
+            }}
+            transition={{ 
+              opacity: { duration: 2, ease: EASE_OUT_QUINT },
+              scale: { duration: 20, repeat: Infinity, repeatType: "reverse", ease: "linear" },
+              y: { type: "spring", damping: 30, stiffness: 100 }
+            }}
             className="absolute inset-0"
           >
             <SmartImage 
-              src="/photos/hero.png" 
-              alt="Hero Background" 
-              className="w-full h-full object-cover"
+              src="https://github.com/user-attachments/assets/eca61550-3dad-4abd-9837-2358c9b3cef4" 
+              alt="Premium Laptops" 
+              className="w-full h-full object-cover brightness-[0.8] contrast-[1.1]"
+              priority
             />
           </motion.div>
           
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/60 to-slate-900" />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/40 to-slate-950" />
+          <div className="absolute inset-0 bg-slate-950/20" />
           
           <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div
@@ -835,15 +1180,13 @@ export default function App() {
               transition={{ duration: 1, ease: EASE_OUT_QUINT }}
             >
               <span className="inline-block bg-emerald-500/20 text-emerald-400 text-xs font-black px-4 py-2 rounded-full uppercase tracking-[0.3em] mb-6 backdrop-blur-sm border border-emerald-500/30">
-                Nigeria's #1 Laptop Plug
+                <EditableText id="hero-tag" defaultText="Nigeria's #1 Laptop Plug" />
               </span>
               <h1 className="text-5xl md:text-8xl font-black text-white mb-8 tracking-tight leading-[1.1]">
-                Nigeria's Most Trusted<br />
-                <span className="text-emerald-500">Laptop Plug.</span>
+                <EditableText id="hero-title" defaultText="Nigeria's Most Trusted Laptop Plug." />
               </h1>
               <p className="text-lg md:text-xl text-slate-300 mb-12 max-w-2xl mx-auto font-medium leading-relaxed">
-                Discover our curated selection of high-performance laptops. 
-                Verified hardware, real warranties, and the best prices in Nigeria.
+                <EditableText id="hero-desc" defaultText="Discover our curated selection of high-performance laptops. Verified hardware, real warranties, and the best prices in Nigeria." />
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
@@ -880,34 +1223,40 @@ export default function App() {
         </section>
 
         {/* --- Features Section --- */}
-        <section className="py-24 bg-white border-b border-slate-100">
+        <section className="py-24 bg-white border-b border-slate-100 content-visibility-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
               <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6">
                   <CheckCircle2 className="w-8 h-8 text-emerald-600" />
                 </div>
-                <h3 className="text-xl font-black text-slate-900 mb-3">Verified Hardware</h3>
+                <h3 className="text-xl font-black text-slate-900 mb-3">
+                  <EditableText id="feat1-title" defaultText="Verified Hardware" />
+                </h3>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                  Every laptop undergoes a rigorous 25-point diagnostic check before listing.
+                  <EditableText id="feat1-desc" defaultText="Every laptop undergoes a rigorous 25-point diagnostic check before listing." />
                 </p>
               </div>
               <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-6">
                   <Clock className="w-8 h-8 text-blue-600" />
                 </div>
-                <h3 className="text-xl font-black text-slate-900 mb-3">14-Day Warranty</h3>
+                <h3 className="text-xl font-black text-slate-900 mb-3">
+                  <EditableText id="feat2-title" defaultText="14-Day Warranty" />
+                </h3>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                  Shop with confidence. We offer a real hardware warranty on all our products.
+                  <EditableText id="feat2-desc" defaultText="Shop with confidence. We offer a real hardware warranty on all our products." />
                 </p>
               </div>
               <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center mb-6">
                   <MapPin className="w-8 h-8 text-purple-600" />
                 </div>
-                <h3 className="text-xl font-black text-slate-900 mb-3">Nationwide Delivery</h3>
+                <h3 className="text-xl font-black text-slate-900 mb-3">
+                  <EditableText id="feat3-title" defaultText="Nationwide Delivery" />
+                </h3>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                  Fast and secure delivery across Nigeria, or visit our physical location in Abuja.
+                  <EditableText id="feat3-desc" defaultText="Fast and secure delivery across Nigeria, or visit our physical location in Abuja." />
                 </p>
               </div>
             </div>
@@ -922,10 +1271,10 @@ export default function App() {
                 <div className="lg:w-1/2 p-12 md:p-20">
                   <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest mb-8 inline-block">Our Story</span>
                   <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-8 leading-tight">
-                    "We operate in honest form and our guaranty is real"
+                    <EditableText id="about-title" defaultText='"We operate in honest form and our guaranty is real"' />
                   </h2>
                   <p className="text-lg text-slate-600 mb-10 leading-relaxed">
-                    YaksonThreeSons Ltd was founded on the principle of transparency. In a market full of uncertainty, we provide Nigeria with a reliable source for high-quality computing.
+                    <EditableText id="about-desc" defaultText="YaksonThreeSons Ltd was founded on the principle of transparency. In a market full of uncertainty, we provide Nigeria with a reliable source for high-quality computing." />
                   </p>
                   
                   <div className="grid grid-cols-2 gap-8 mb-12">
@@ -960,24 +1309,32 @@ export default function App() {
                       </a>
                     </div>
                   </div>
+
+                  <div className="mt-12 pt-8 border-t border-slate-100">
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-2">CEO & Founder</p>
+                    <p className="text-2xl font-black text-slate-900">Mr Ugwoke James</p>
+                  </div>
                 </div>
                 <div className="lg:w-1/2 bg-slate-900 relative min-h-[400px]">
                   <SmartImage 
-                    src="/photos/about.png" 
-                    alt="Our Office" 
-                    className="w-full h-full object-cover opacity-60"
+                    src="https://github.com/user-attachments/assets/23d7e7eb-0a89-4ff5-9b06-02e185540cdf" 
+                    alt="Cutting Edge Technology" 
+                    className="w-full h-full object-cover"
+                    priority
                   />
                   <div className="absolute inset-0 flex items-center justify-center p-12">
                     <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-[2rem] text-white">
                       <Quote className="w-10 h-10 text-emerald-500 mb-6" />
                       <p className="text-xl font-bold italic leading-relaxed mb-6">
-                        "The best laptop plug in Nigeria. Honest deals always. I got exactly what I wanted and the customer service was top-notch."
+                        <EditableText id="about-quote" defaultText='"The best laptop plug in Nigeria. Honest deals always. I got exactly what I wanted and the customer service was top-notch."' />
                       </p>
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-black">V</div>
                         <div>
                           <p className="font-black">Verified Buyer</p>
-                          <p className="text-xs text-white/60">Purchased HP EliteBook 840</p>
+                          <p className="text-xs text-white/60">
+                            <EditableText id="about-quote-sub" defaultText="Purchased HP EliteBook 840" />
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -991,10 +1348,17 @@ export default function App() {
         {/* --- Shop Section --- */}
         <section id="shop" className="py-24 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Table Gallery Section */}
+            <TableGallery />
+
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
               <div>
-                <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">Explore Our Collection</h2>
-                <p className="text-slate-500 font-medium">Find the perfect laptop for your needs and budget.</p>
+                <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">
+                  <EditableText id="shop-title" defaultText="Explore Our Collection" />
+                </h2>
+                <p className="text-slate-500 font-medium">
+                  <EditableText id="shop-desc" defaultText="Find the perfect laptop for your needs and budget." />
+                </p>
               </div>
               
               <div className="flex items-center gap-4">
@@ -1037,7 +1401,7 @@ export default function App() {
                 </button>
               </div>
 
-              <FilterSection title="Condition" options={["Used", "Brand New"]} field="condition" filters={filters} setFilters={setFilters} />
+              <FilterSection title="Condition" options={["Open Box", "Brand New"]} field="condition" filters={filters} setFilters={setFilters} />
               <FilterSection title="Brand" options={["HP", "Apple", "Dell", "Lenovo"]} field="brand" filters={filters} setFilters={setFilters} />
               <FilterSection title="CPU" options={["i3", "i5", "i7"]} field="cpu" filters={filters} setFilters={setFilters} />
               <FilterSection title="RAM" options={["8GB", "12GB", "16GB"]} field="ram" filters={filters} setFilters={setFilters} />
@@ -1116,22 +1480,10 @@ export default function App() {
 
             {/* Product Grid / Slider */}
             {viewMode === 'grid' ? (
-              <div className="grid grid-cols-2 gap-3 sm:gap-8">
+              <div className="grid grid-cols-2 gap-3 sm:gap-8 min-h-[600px]">
                 {isLoading ? (
-                  // Skeleton Loading
                   [...Array(6)].map((_, i) => (
-                    <div key={i} className="bg-white rounded-3xl border border-slate-200 overflow-hidden h-[450px] animate-shimmer">
-                      <div className="h-56 bg-slate-100" />
-                      <div className="p-6 space-y-4">
-                        <div className="h-4 bg-slate-100 rounded w-1/4" />
-                        <div className="h-6 bg-slate-100 rounded w-3/4" />
-                        <div className="h-4 bg-slate-100 rounded w-1/2" />
-                        <div className="pt-4 border-t border-slate-100 flex justify-between">
-                          <div className="h-8 bg-slate-100 rounded w-1/3" />
-                          <div className="h-10 bg-slate-100 rounded w-10" />
-                        </div>
-                      </div>
-                    </div>
+                    <ProductCardSkeleton key={i} />
                   ))
                 ) : (
                   <AnimatePresence mode="popLayout">
@@ -1151,14 +1503,16 @@ export default function App() {
                 )}
               </div>
             ) : (
-              <div className="space-y-12">
+              <div className="space-y-12 min-h-[600px]">
                 {isLoading ? (
                   [...Array(3)].map((_, i) => (
                     <div key={i} className="animate-pulse">
                       <div className="h-8 bg-slate-100 rounded w-48 mb-6" />
                       <div className="flex gap-8 overflow-hidden">
                         {[...Array(3)].map((_, j) => (
-                          <div key={j} className="flex-shrink-0 w-[300px] h-[400px] bg-slate-50 rounded-3xl" />
+                          <div key={j} className="flex-shrink-0 w-[300px] h-[450px]">
+                            <ProductCardSkeleton />
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -1222,23 +1576,38 @@ export default function App() {
             {/* View More Products on Jiji */}
             {!isLoading && filteredLaptops.length > 0 && (
               <div className="mt-16 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="flex flex-col justify-center p-12 bg-emerald-50 rounded-[2.5rem] border border-emerald-100 text-center lg:text-left">
-                  <div className="bg-white w-16 h-16 flex items-center justify-center rounded-2xl shadow-sm mb-6 mx-auto lg:mx-0 overflow-hidden">
-                    <Logo className="w-8 h-8 text-emerald-600" />
+                <div className="relative flex flex-col justify-center p-12 rounded-[2.5rem] border border-slate-200 text-center lg:text-left overflow-hidden group/jiji">
+                  {/* Background Video Space */}
+                  <div className="absolute inset-0 z-0">
+                    <video 
+                      src="https://github.com/user-attachments/assets/fa81ead4-66cc-4077-b760-77d4ce1be31f" 
+                      autoPlay 
+                      muted 
+                      loop 
+                      playsInline
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover/jiji:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] group-hover/jiji:bg-white/70 transition-colors" />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 mb-3">Looking for more options?</h3>
-                  <p className="text-slate-600 mb-8 max-w-md mx-auto lg:mx-0">
-                    We have a wider selection of premium laptops available on our official Jiji store. Check them out now!
-                  </p>
-                  <a 
-                    href="https://jiji.ng/sellerpage-fm7yBLF4WlrLzuISjm9WZV5E" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="group inline-flex items-center justify-center lg:justify-start gap-3 bg-slate-900 hover:bg-emerald-600 text-white font-black px-10 py-5 rounded-2xl transition-all shadow-xl shadow-slate-200 active:scale-95 w-full sm:w-auto"
-                  >
-                    View More on Jiji
-                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </a>
+
+                  <div className="relative z-10">
+                    <div className="bg-emerald-600 w-16 h-16 flex items-center justify-center rounded-2xl shadow-lg shadow-emerald-200 mb-6 mx-auto lg:mx-0 overflow-hidden">
+                      <Logo className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-black text-slate-900 mb-3">Looking for more options?</h3>
+                    <p className="text-slate-600 mb-8 max-w-md mx-auto lg:mx-0 font-medium">
+                      We have a wider selection of premium laptops available on our official Jiji store. Check them out now!
+                    </p>
+                    <a 
+                      href="https://jiji.ng/sellerpage-fm7yBLF4WlrLzuISjm9WZV5E" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="group inline-flex items-center justify-center lg:justify-start gap-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black px-10 py-5 rounded-2xl transition-all shadow-xl shadow-emerald-200 active:scale-95 w-full sm:w-auto"
+                    >
+                      View More on Jiji
+                      <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </a>
+                  </div>
                 </div>
                 
                 <ReviewSlider />
@@ -1272,7 +1641,7 @@ export default function App() {
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
-        className="bg-white border-t border-slate-200 pt-20 pb-10"
+        className="bg-white border-t border-slate-200 pt-20 pb-10 content-visibility-auto"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
@@ -1282,7 +1651,7 @@ export default function App() {
                 <h1 className="text-xl font-black text-slate-900 tracking-tight">YaksonThreeSons Ltd</h1>
               </div>
               <p className="text-slate-500 text-sm leading-relaxed">
-                Nigeria's most trusted laptop dealer for over 5 years. We specialize in high-quality used and brand new laptops with real guarantees.
+                Nigeria's most trusted laptop dealer for over 5 years. We specialize in high-quality open box and brand new laptops with real guarantees.
               </p>
               <div className="flex gap-4">
                 <a href="https://wa.me/2347013306552" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-emerald-600 hover:text-white transition-all">
@@ -1352,10 +1721,15 @@ export default function App() {
             </div>
           </div>
 
-          <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs font-bold text-slate-400">
-              © 2026 YaksonThreeSons Ltd. Based on real customer feedback (46 good, 3 bad).
-            </p>
+          <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="space-y-2 text-center md:text-left">
+              <p className="text-xs font-bold text-slate-400">
+                © 2026 YaksonThreeSons Ltd. Based on real customer feedback (46 good, 3 bad).
+              </p>
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
+                Powered by <span className="text-emerald-500/80">Skepter Forge</span>
+              </p>
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Verified on</span>
               <span className="text-sm font-black text-slate-900">Jiji</span>
@@ -1411,9 +1785,9 @@ export default function App() {
                 ) : (
                   cart.map(item => (
                     <div key={item.id} className="flex gap-4 group">
-                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
+                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
                         <SmartImage 
-                          src={`/photos/${item.id}.png`} 
+                          src={item.image} 
                           alt={item.name} 
                           className="w-full h-full object-cover" 
                         />
@@ -1533,9 +1907,9 @@ export default function App() {
                     if (!laptop) return null;
                     return (
                       <div key={laptop.id} className="flex gap-4 group">
-                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
+                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
                           <SmartImage 
-                            src={`/photos/${laptop.id}.png`} 
+                            src={laptop.image} 
                             alt={laptop.name} 
                             className="w-full h-full object-cover" 
                           />
@@ -1594,7 +1968,7 @@ export default function App() {
               <div className="md:flex h-full max-h-[90vh] overflow-y-auto md:overflow-hidden">
                 <div className="md:w-1/2 bg-slate-100 relative">
                   <SmartImage 
-                    src={`/photos/${quickViewLaptop.id}.png`} 
+                    src={quickViewLaptop.image} 
                     alt={quickViewLaptop.name} 
                     className="w-full h-full object-cover"
                   />
@@ -1609,7 +1983,7 @@ export default function App() {
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <span className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-2 block">{quickViewLaptop.brand}</span>
-                      <h2 className="text-2xl font-black text-slate-900 leading-tight">{quickViewLaptop.name}</h2>
+                      <h2 className="text-3xl font-black text-slate-900 leading-tight">{quickViewLaptop.name}</h2>
                     </div>
                     <button onClick={() => setQuickViewId(null)} className="hidden md:block p-2 hover:bg-slate-100 rounded-full transition-colors">
                       <X className="w-6 h-6" />
@@ -1644,6 +2018,10 @@ export default function App() {
                       <span className="text-[10px] font-bold text-slate-400 uppercase">Display</span>
                       <p className="text-sm font-black text-slate-900">{quickViewLaptop.screen} Screen</p>
                     </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Location</span>
+                      <p className="text-sm font-black text-slate-900">{quickViewLaptop.location}</p>
+                    </div>
                   </div>
 
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-8">
@@ -1652,7 +2030,7 @@ export default function App() {
                       <span className="text-xs font-bold text-slate-900">YaksonThreeSons Ltd Guarantee</span>
                     </div>
                     <p className="text-[11px] text-slate-500 leading-relaxed">
-                      "We operate in honest form and our guaranty is real. 14-day return policy and full hardware support included."
+                      <EditableText id="guarantee-text" defaultText='"We operate in honest form and our guaranty is real. 14-day return policy and full hardware support included."' />
                     </p>
                   </div>
 
@@ -1712,7 +2090,7 @@ export default function App() {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-6">
-                <FilterSection title="Condition" options={["Used", "Brand New"]} field="condition" filters={filters} setFilters={setFilters} />
+                <FilterSection title="Condition" options={["Open Box", "Brand New"]} field="condition" filters={filters} setFilters={setFilters} />
                 <FilterSection title="Brand" options={["HP", "Apple", "Dell", "Lenovo"]} field="brand" filters={filters} setFilters={setFilters} />
                 <FilterSection title="CPU" options={["i3", "i5", "i7"]} field="cpu" filters={filters} setFilters={setFilters} />
                 <FilterSection title="RAM" options={["8GB", "12GB", "16GB"]} field="ram" filters={filters} setFilters={setFilters} />

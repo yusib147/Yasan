@@ -1,0 +1,31 @@
+{
+  "entities": {
+    "SiteImage": {
+      "title": "Site Image",
+      "description": "Custom images uploaded by admin for various site elements",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the image (e.g., 'logo', 'hero', 'laptop-1')"
+        },
+        "url": {
+          "type": "string",
+          "description": "The base64 encoded image data or URL"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the image was last updated"
+        }
+      },
+      "required": ["id", "url", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/site_images/{imageId}": {
+      "schema": "SiteImage",
+      "description": "Collection of custom site images"
+    }
+  }
+}
