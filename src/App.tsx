@@ -115,15 +115,15 @@ const reviews: Review[] = [
   { id: 5, name: "Ralph Kenny", text: "The deal went well. The seller was very friendly and accomodating. I got exactly what i wanted. Great deal at the end. I am giving him 5 star.", rating: 5, date: "16/12/22" }
 ];
 const laptops: LaptopData[] = [
-  { id: 1, name: "HP Pavilion 15-Cs3063cl", price: 700000, condition: "Open Box", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "512GB SSD", screen: "15.6\"", location: "Abuja, Wuse 2", image: "https://github.com/user-attachments/assets/33b3643d-c04f-4e0e-8f0b-6b41984c0f1b" },
-  { id: 2, name: "HP Pavilion 15t", price: 380000, condition: "Open Box", brand: "HP", cpu: "Intel Core i5", ram: "12GB", storage: "512GB SSD", screen: "15.6\"", location: "Abuja, Wuse", image: "https://github.com/user-attachments/assets/17b7f109-4061-472c-9ad0-f380650cdcba" },
-  { id: 3, name: "Apple MacBook Air 2015", price: 300000, condition: "Open Box", brand: "Apple", cpu: "Intel Core i5", ram: "8GB", storage: "128GB SSD", screen: "13.3\"", location: "Abuja, Wuse", image: "https://github.com/user-attachments/assets/d44ab953-19d2-45fc-81bf-8e274d0baf47" },
-  { id: 4, name: "HP EliteBook 840 G7", price: 500000, condition: "Open Box", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "256GB SSD", screen: "13.3\"", location: "Abuja, Wuse", image: "https://github.com/user-attachments/assets/25e09e66-b0ac-41e1-bc38-66fcc4875afb" },
-  { id: 5, name: "HP 15", price: 350000, condition: "Open Box", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "1TB HDD", screen: "15.6\"", location: "Abuja, Wuse", image: "https://github.com/user-attachments/assets/dd13ae92-d30a-426c-ba4b-8796595de7ae" },
-  { id: 6, name: "HP EliteBook 840 G5", price: 500000, condition: "Open Box", brand: "HP", cpu: "Intel Core i7", ram: "16GB", storage: "512GB SSD", screen: "14\"", location: "Abuja, Wuse", image: "https://github.com/user-attachments/assets/d907ebe7-5775-4ed4-a423-e8df21ffa875" },
-  { id: 7, name: "Apple MacBook Pro 2014", price: 450000, condition: "Open Box", brand: "Apple", cpu: "Intel Core i7", ram: "16GB", storage: "256GB SSD", screen: "15.6\"", location: "Abuja, Wuse", image: "" },
-  { id: 8, name: "Apple MacBook Pro 2018", price: 850000, condition: "Open Box", brand: "Apple", cpu: "Intel Core i7", ram: "16GB", storage: "512GB SSD", screen: "13.3\"", location: "Abuja, Wuse", image: "" },
-  { id: 9, name: "HP Envy 14", price: 1000000, condition: "Open Box", brand: "HP", cpu: "Intel Core i7", ram: "16GB", storage: "1TB SSD", screen: "14\"", location: "Abuja, Wuse", image: "" }
+  { id: 1, name: "HP Pavilion 15-Cs3063cl", price: 700000, condition: "Open Box", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "512GB SSD", screen: "15.6\"", location: "Bannex Plaza, Abuja", image: "https://github.com/user-attachments/assets/33b3643d-c04f-4e0e-8f0b-6b41984c0f1b" },
+  { id: 2, name: "HP Pavilion 15t", price: 380000, condition: "Open Box", brand: "HP", cpu: "Intel Core i5", ram: "12GB", storage: "512GB SSD", screen: "15.6\"", location: "GSM Village, Abuja", image: "https://github.com/user-attachments/assets/17b7f109-4061-472c-9ad0-f380650cdcba" },
+  { id: 3, name: "Apple MacBook Air 2015", price: 300000, condition: "Open Box", brand: "Apple", cpu: "Intel Core i5", ram: "8GB", storage: "128GB SSD", screen: "13.3\"", location: "GSM Village, Abuja", image: "https://github.com/user-attachments/assets/d44ab953-19d2-45fc-81bf-8e274d0baf47" },
+  { id: 4, name: "HP EliteBook 840 G7", price: 500000, condition: "Open Box", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "256GB SSD", screen: "13.3\"", location: "GSM Village, Abuja", image: "https://github.com/user-attachments/assets/25e09e66-b0ac-41e1-bc38-66fcc4875afb" },
+  { id: 5, name: "HP 15", price: 350000, condition: "Open Box", brand: "HP", cpu: "Intel Core i5", ram: "8GB", storage: "1TB HDD", screen: "15.6\"", location: "GSM Village, Abuja", image: "https://github.com/user-attachments/assets/dd13ae92-d30a-426c-ba4b-8796595de7ae" },
+  { id: 6, name: "HP EliteBook 840 G5", price: 500000, condition: "Open Box", brand: "HP", cpu: "Intel Core i7", ram: "16GB", storage: "512GB SSD", screen: "14\"", location: "GSM Village, Abuja", image: "https://github.com/user-attachments/assets/d907ebe7-5775-4ed4-a423-e8df21ffa875" },
+  { id: 7, name: "Apple MacBook Pro 2014", price: 450000, condition: "Open Box", brand: "Apple", cpu: "Intel Core i7", ram: "16GB", storage: "256GB SSD", screen: "15.6\"", location: "GSM Village, Abuja", image: "https://picsum.photos/seed/macpro2014/800/1000" },
+  { id: 8, name: "Apple MacBook Pro 2018", price: 850000, condition: "Open Box", brand: "Apple", cpu: "Intel Core i7", ram: "16GB", storage: "512GB SSD", screen: "13.3\"", location: "GSM Village, Abuja", image: "https://picsum.photos/seed/macpro2018/800/1000" },
+  { id: 9, name: "HP Envy 14", price: 1000000, condition: "Open Box", brand: "HP", cpu: "Intel Core i7", ram: "16GB", storage: "1TB SSD", screen: "14\"", location: "GSM Village, Abuja", image: "https://picsum.photos/seed/hpenvy14/800/1000" }
 ];
 
 // --- Hooks ---
@@ -1062,11 +1062,11 @@ export default function App() {
             {/* Bottom Branding */}
             <div className="absolute bottom-12 left-0 right-0 flex flex-col items-center gap-4 opacity-40">
               <div className="flex items-center gap-6">
+                <span className="text-[8px] font-black text-white uppercase tracking-[0.5em]">Bannex Plaza</span>
+                <div className="w-1 h-1 bg-emerald-500 rounded-full" />
+                <span className="text-[8px] font-black text-white uppercase tracking-[0.5em]">GSM Village</span>
+                <div className="w-1 h-1 bg-emerald-500 rounded-full" />
                 <span className="text-[8px] font-black text-white uppercase tracking-[0.5em]">Abuja</span>
-                <div className="w-1 h-1 bg-emerald-500 rounded-full" />
-                <span className="text-[8px] font-black text-white uppercase tracking-[0.5em]">Lagos</span>
-                <div className="w-1 h-1 bg-emerald-500 rounded-full" />
-                <span className="text-[8px] font-black text-white uppercase tracking-[0.5em]">Nationwide</span>
               </div>
             </div>
           </motion.div>
@@ -1253,10 +1253,10 @@ export default function App() {
                   <MapPin className="w-8 h-8 text-purple-600" />
                 </div>
                 <h3 className="text-xl font-black text-slate-900 mb-3">
-                  <EditableText id="feat3-title" defaultText="Nationwide Delivery" />
+                  <EditableText id="feat3-title" defaultText="Abuja Physical Stores" />
                 </h3>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                  <EditableText id="feat3-desc" defaultText="Fast and secure delivery across Nigeria, or visit our physical location in Abuja." />
+                  <EditableText id="feat3-desc" defaultText="Visit us at Bannex Plaza or GSM Village Abuja for an honest premium tech experience." />
                 </p>
               </div>
             </div>
@@ -1310,9 +1310,17 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="mt-12 pt-8 border-t border-slate-100">
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-2">CEO & Founder</p>
-                    <p className="text-2xl font-black text-slate-900">Mr Ugwoke James</p>
+                  <div className="mt-12 pt-8 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <p className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-2">CEO & Founder</p>
+                      <p className="text-xl font-black text-slate-900">Mr Ugwoke James</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Main Office</p>
+                      <p className="text-sm font-bold text-slate-600 leading-tight">
+                        Bannex plaza SBF 116A by Central Park wuse 11 After Access bank, Abuja.
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="lg:w-1/2 bg-slate-900 relative min-h-[400px]">
@@ -1714,8 +1722,17 @@ export default function App() {
                   <a href="mailto:ugwokejames84@gmail.com" className="hover:text-emerald-600 transition-colors">ugwokejames84@gmail.com</a>
                 </li>
                 <li className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                  <span>Abuja, Wuse / Wuse 2, Nigeria</span>
+                  <MapPin className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-1" />
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">Main Location</p>
+                      <p>Bannex plaza SBF 116A by Central Park wuse 11 After Access bank Yakson threesons ltd, Abuja.</p>
+                    </div>
+                    <div className="pt-2 border-t border-slate-100">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">Branch</p>
+                      <p>Wuse zone 1 block 35 shop H and I gsm village Abuja</p>
+                    </div>
+                  </div>
                 </li>
               </ul>
             </div>
